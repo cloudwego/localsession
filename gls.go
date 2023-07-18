@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	// DefaultShardNum set the sharding number of id->sesssion map for default SessionManager
+	// DefaultShardNum set the sharding number of id->session map for default SessionManager
 	DefaultShardNum = 100
 	
 	// DefaultGCInterval set the GC interval for default SessionManager

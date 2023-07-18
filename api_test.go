@@ -39,7 +39,7 @@ func TestTransparentTransmitAsync(t *testing.T) {
 	labels := pprof.Labels("c", "d")
 	pprof.Do(context.Background(), labels, func(ctx context.Context) {})
 	// WARNING pprof.Do() must be called before BindSession(), 
-	// otherwise transparently transmitting session will be disfunctional
+	// otherwise transparently transmitting session will be dysfunctional
 	BindSession(s)
 
 	wg := sync.WaitGroup{}

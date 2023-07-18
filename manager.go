@@ -79,7 +79,7 @@ func (self SessionManager) Options() ManagerOptions {
 	return self.opts
 }
 
-// SessionID is the indentity of a session
+// SessionID is the identity of a session
 type SessionID uint64
 
 func (s *shard) Load(id SessionID) (Session, bool) {
