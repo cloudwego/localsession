@@ -109,6 +109,7 @@ func TestTransparentTransmitAsync(t *testing.T) {
 	
 	BindSession(s)
 
+	
 	wg := sync.WaitGroup{}
 	wg.Add(3)
 	go func() {
