@@ -29,14 +29,14 @@ const N = 10
 
 func TestResetDefaultManager(t *testing.T) {
 	old := defaultManagerObj
-	exp := ManagerOptions{
-		ShardNumber: 1,
-		EnableImplicitlyTransmitAsync: true,
-		GCInterval: time.Second*2,
-	}
-
+	
 	t.Run("arg", func(t *testing.T) {
 		defaultManagerOnce = sync.Once{}
+		exp := ManagerOptions{
+			ShardNumber: 1,
+			EnableImplicitlyTransmitAsync: true,
+			GCInterval: time.Second*2,
+		}
 		ResetDefaultManager(&exp)
 		act := defaultManagerObj.Options()
 		require.Equal(t, exp, act)
@@ -88,12 +88,14 @@ func TestResetDefaultManager(t *testing.T) {
 	defaultManagerOnce = sync.Once{}
 }
 
+//
+//go:nocheckptr
 func TestTransparentTransmitAsync(t *testing.T) {
 	old := defaultManagerObj
 	ResetDefaultManager(&ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
-		GCInterval: time.Second*2,
+		GCInterval: time.Hour,
 	})
 	s := NewSessionMap(map[interface{}]interface{}{
 		"a": "b",

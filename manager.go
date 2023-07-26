@@ -87,6 +87,7 @@ func (self SessionManager) Options() ManagerOptions {
 // SessionID is the identity of a session
 type SessionID uint64
 
+//go:nocheckptr
 func (s *shard) Load(id SessionID) (Session, bool) {
 	s.lock.RLock()
 	session, ok := s.m[id]
@@ -179,6 +180,7 @@ func (self SessionManager) GC() {
 
 	atomic.StoreUint32(&self.inGC, 0)
 }
+
 
 // startGC start a scheduled goroutine to call GC() according to GCInterval
 func (self *SessionManager) startGC() {

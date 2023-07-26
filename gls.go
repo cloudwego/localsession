@@ -58,6 +58,8 @@ func DefaultManagerOptions() ManagerOptions {
 //   - It use env SESSION_CONFIG_KEY prior to argument opts;
 //   - If both env and opts are empty, it won't reset manager;
 //   - For concurrent safety, you can only successfully reset manager ONCE.
+//
+//go:nocheckptr
 func ResetDefaultManager(opts *ManagerOptions) {
 	// check env first
 	if env := os.Getenv(SESSION_CONFIG_KEY); env != "" {
