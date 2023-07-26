@@ -197,7 +197,7 @@ You can also set option `EnableImplicitlyTransmitAsync` as true to transparently
 ```go
 func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
 	// rest DefaultManager with new Options
-	ResetDefaultManager(&ManagerOptions{
+	ResetDefaultManager(ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
 		GCInterval: time.Hour,

@@ -37,16 +37,16 @@ func TestResetDefaultManager(t *testing.T) {
 			EnableImplicitlyTransmitAsync: true,
 			GCInterval: time.Second*2,
 		}
-		ResetDefaultManager(&exp)
+		ResetDefaultManager(exp)
 		act := defaultManagerObj.Options()
 		require.Equal(t, exp, act)
 	})
 
 	t.Run("arg", func(t *testing.T) {
 		defaultManagerOnce = sync.Once{}
-		env := `10,true,10s`
+		env := `true,10,10s`
 		os.Setenv(SESSION_CONFIG_KEY, env)
-		ResetDefaultManager(nil)
+		ResetDefaultManager(ManagerOptions{})
 		act := defaultManagerObj.Options()
 		exp := DefaultManagerOptions()
 		exp.ShardNumber = 10
@@ -55,18 +55,18 @@ func TestResetDefaultManager(t *testing.T) {
 		require.Equal(t, exp, act)
 
 		defaultManagerOnce = sync.Once{}
-		env = `1000`
+		env = `,1000`
 		os.Setenv(SESSION_CONFIG_KEY, env)
-		ResetDefaultManager(nil)
+		ResetDefaultManager(ManagerOptions{})
 		act = defaultManagerObj.Options()
 		exp = DefaultManagerOptions()
 		exp.ShardNumber = 1000
 		require.Equal(t, exp, act)
 
 		defaultManagerOnce = sync.Once{}
-		env = `1,,2s`
+		env = `,1,2s`
 		os.Setenv(SESSION_CONFIG_KEY, env)
-		ResetDefaultManager(nil)
+		ResetDefaultManager(ManagerOptions{})
 		act = defaultManagerObj.Options()
 		exp = DefaultManagerOptions()
 		exp.ShardNumber = 1
@@ -74,9 +74,9 @@ func TestResetDefaultManager(t *testing.T) {
 		require.Equal(t, exp, act)
 
 		defaultManagerOnce = sync.Once{}
-		env = `,true,2s`
+		env = `true,,2s`
 		os.Setenv(SESSION_CONFIG_KEY, env)
-		ResetDefaultManager(nil)
+		ResetDefaultManager(ManagerOptions{})
 		act = defaultManagerObj.Options()
 		exp = DefaultManagerOptions()
 		exp.EnableImplicitlyTransmitAsync = true
@@ -92,7 +92,7 @@ func TestResetDefaultManager(t *testing.T) {
 //go:nocheckptr
 func TestTransparentTransmitAsync(t *testing.T) {
 	old := defaultManagerObj
-	ResetDefaultManager(&ManagerOptions{
+	ResetDefaultManager(ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
 		GCInterval: time.Hour,

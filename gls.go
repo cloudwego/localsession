@@ -24,9 +24,9 @@ import (
 )
 
 // SESSION_CONFIG_KEY is the env key for configuring default session manager.
-//  Value format: [ShardNumber][,EnableImplicitlyTransmitAsync][,GCInterval]
-//  - ShardNumber: integer > 0
+//  Value format: [EnableImplicitlyTransmitAsync][,ShardNumber][,GCInterval]
 //  - EnableImplicitlyTransmitAsync: 'true' means enabled, otherwist means disabled
+//  - ShardNumber: integer > 0
 //  - GCInterval: Golang time.Duration format, such as '1h' means one hour
 // Once the key is set, default option values will be set if the option value doesn't exist.
 const SESSION_CONFIG_KEY = "CLOUDWEGO_SESSION_CONFIG_KEY"
@@ -60,36 +60,37 @@ func DefaultManagerOptions() ManagerOptions {
 //   - For concurrent safety, you can only successfully reset manager ONCE.
 //
 //go:nocheckptr
-func ResetDefaultManager(opts *ManagerOptions) {
+func ResetDefaultManager(opts ManagerOptions) {
 	// check env first
 	if env := os.Getenv(SESSION_CONFIG_KEY); env != "" {
 		envs := strings.Split(env, ",")
-		opt := DefaultManagerOptions()
-		opts = &opt
-		// parse first option as ShardNumber
-		if opt, err := strconv.Atoi(envs[0]); err == nil {
-			opts.ShardNumber = opt
-		}
-		// parse second option as EnableTransparentTransmitAsync
-		if len(envs) > 1 && strings.ToLower(envs[1]) == "true" {
+		opts = DefaultManagerOptions()
+
+		// parse first option as EnableTransparentTransmitAsync
+		if strings.ToLower(envs[0]) == "true" {
 			opts.EnableImplicitlyTransmitAsync = true
 		}
+
+		// parse first option as ShardNumber
+		if len(envs) > 1 {
+			if opt, err := strconv.Atoi(envs[1]); err == nil {
+				opts.ShardNumber = opt
+			}
+		}
+		
 		// parse third option as EnableTransparentTransmitAsync
 		if len(envs) > 2 {
 			if d, err := time.ParseDuration(envs[2]); err == nil && d > time.Second {
 				opts.GCInterval = d
 			}
 		}
-		// no env found, then check argument
-	} else if opts == nil {
-		return
 	}
 
 	defaultManagerOnce.Do(func() {
 		if defaultManagerObj != nil {
 			defaultManagerObj.Close()
 		}
-		obj := NewSessionManager(*opts)
+		obj := NewSessionManager(opts)
 		defaultManagerObj = &obj
 	})
 }
