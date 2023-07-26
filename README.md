@@ -197,11 +197,11 @@ You can also set option `EnableImplicitlyTransmitAsync` as true to transparently
 ```go
 func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
 	// rest DefaultManager with new Options
-	SetDefaultManager(NewSessionManager(ManagerOptions{
+	ResetDefaultManager(ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
 		GCInterval: time.Hour,
-	}))
+	})
 
 	// WARNING: pprof.Do() must be called before BindSession(), 
 	// otherwise transparently transmitting session will be dysfunctional
