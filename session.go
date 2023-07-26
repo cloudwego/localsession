@@ -41,10 +41,10 @@ type SessionCtx struct {
 }
 
 // NewSessionCtx creates and enables a SessionCtx
-func NewSessionCtx(ctx context.Context) *SessionCtx {
+func NewSessionCtx(ctx context.Context) SessionCtx {
 	var enabled atomic.Value
 	enabled.Store(true)
-	return &SessionCtx{
+	return SessionCtx{
 		enabled: &enabled,
 		storage: ctx,
 	}
@@ -52,7 +52,7 @@ func NewSessionCtx(ctx context.Context) *SessionCtx {
 
 // NewSessionCtx creates and enables a SessionCtx,
 // and disable the session after timeout
-func NewSessionCtxWithTimeout(ctx context.Context, timeout time.Duration) *SessionCtx {
+func NewSessionCtxWithTimeout(ctx context.Context, timeout time.Duration) SessionCtx {
 	ret := NewSessionCtx(ctx)
 	go func() {
 		<- time.NewTimer(timeout).C
@@ -66,26 +66,25 @@ func (self SessionCtx) Disable() {
 	self.enabled.Store(false)
 }
 
+// Export exports underlying context
+func (self SessionCtx) Export() context.Context {
+	return self.storage
+}
+
 // IsValid tells if the session is valid at present
-func (self *SessionCtx) IsValid() bool {
-	if self == nil {
-		return false
-	}
+func (self SessionCtx) IsValid() bool {
 	return self.enabled.Load().(bool)
 }
 
 // Get value for specific key
-func (self *SessionCtx) Get(key interface{}) interface{} {
-	if self == nil {
-		return nil
-	}
+func (self SessionCtx) Get(key interface{}) interface{} {
 	return self.storage.Value(key)
 }
 
 // Set value for specific key，and return newly effective session
 func (self SessionCtx) WithValue(key interface{}, val interface{}) Session {
 	ctx := context.WithValue(self.storage, key, val)
-	return &SessionCtx{
+	return SessionCtx{
 		enabled: self.enabled,
 		storage: ctx,
 	}
@@ -130,7 +129,18 @@ func (self *SessionMap) IsValid() bool {
 
 // Disable ends the session
 func (self *SessionMap) Disable() {
+	if self == nil {
+		return
+	}
 	self.enabled.Store(false)
+}
+
+// Export exports underlying map
+func (self *SessionMap) Export() map[interface{}]interface{} {
+	if self == nil {
+		return nil
+	}
+	return self.storage
 }
 
 // Get value for specific key
@@ -146,6 +156,9 @@ func (self *SessionMap) Get(key interface{}) interface{} {
 
 // Set value for specific key，and return itself
 func (self *SessionMap) WithValue(key interface{}, val interface{}) Session {
+	if self == nil {
+		return nil
+	}
 	self.lock.Lock()
 	self.storage[key] = val
 	self.lock.Unlock()
