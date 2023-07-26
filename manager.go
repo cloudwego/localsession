@@ -22,15 +22,15 @@ import (
 
 // ManagerOptions for SessionManager
 type ManagerOptions struct {
+	// ShardNumber is used to shard session id, it must be larger than zero 
+	ShardNumber int
+
 	// EnableImplicitlyTransmitAsync enables transparently transmit 
 	// current session to children goroutines
 	//
 	// WARNING: Once this option enables, `pprof.Do()` must be called before `BindSession()`, 
 	// otherwise transmitting will be dysfunctional
 	EnableImplicitlyTransmitAsync bool
-
-	// ShardNumber is used to shard session id, it must be larger than zero 
-	ShardNumber int
 
 	// GCInterval decides the GC interval for SessionManager, 
 	// it must be larger than 1s or zero means disable GC

@@ -16,6 +16,7 @@ package localsession
 
 import (
 	"context"
+	"os"
 	"runtime/pprof"
 	"sync"
 	"testing"
@@ -26,12 +27,74 @@ import (
 
 const N = 10
 
+func TestResetDefaultManager(t *testing.T) {
+	old := defaultManagerObj
+	exp := ManagerOptions{
+		ShardNumber: 1,
+		EnableImplicitlyTransmitAsync: true,
+		GCInterval: time.Second*2,
+	}
+
+	t.Run("arg", func(t *testing.T) {
+		defaultManagerOnce = sync.Once{}
+		ResetDefaultManager(&exp)
+		act := defaultManagerObj.Options()
+		require.Equal(t, exp, act)
+	})
+
+	t.Run("arg", func(t *testing.T) {
+		defaultManagerOnce = sync.Once{}
+		env := `10,true,10s`
+		os.Setenv(SESSION_CONFIG_KEY, env)
+		ResetDefaultManager(nil)
+		act := defaultManagerObj.Options()
+		exp := DefaultManagerOptions()
+		exp.ShardNumber = 10
+		exp.EnableImplicitlyTransmitAsync = true
+		exp.GCInterval = time.Second*10
+		require.Equal(t, exp, act)
+
+		defaultManagerOnce = sync.Once{}
+		env = `1000`
+		os.Setenv(SESSION_CONFIG_KEY, env)
+		ResetDefaultManager(nil)
+		act = defaultManagerObj.Options()
+		exp = DefaultManagerOptions()
+		exp.ShardNumber = 1000
+		require.Equal(t, exp, act)
+
+		defaultManagerOnce = sync.Once{}
+		env = `1,,2s`
+		os.Setenv(SESSION_CONFIG_KEY, env)
+		ResetDefaultManager(nil)
+		act = defaultManagerObj.Options()
+		exp = DefaultManagerOptions()
+		exp.ShardNumber = 1
+		exp.GCInterval = time.Second*2
+		require.Equal(t, exp, act)
+
+		defaultManagerOnce = sync.Once{}
+		env = `,true,2s`
+		os.Setenv(SESSION_CONFIG_KEY, env)
+		ResetDefaultManager(nil)
+		act = defaultManagerObj.Options()
+		exp = DefaultManagerOptions()
+		exp.EnableImplicitlyTransmitAsync = true
+		exp.GCInterval = time.Second*2
+		require.Equal(t, exp, act)
+	})
+
+	defaultManagerObj = old
+	defaultManagerOnce = sync.Once{}
+}
+
 func TestTransparentTransmitAsync(t *testing.T) {
 	old := defaultManagerObj
-	SetDefaultManager(NewSessionManager(ManagerOptions{
+	ResetDefaultManager(&ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
-	}))
+		GCInterval: time.Second*2,
+	})
 	s := NewSessionMap(map[interface{}]interface{}{
 		"a": "b",
 	})
@@ -66,7 +129,8 @@ func TestTransparentTransmitAsync(t *testing.T) {
 	}()
 
 	wg.Wait()
-	SetDefaultManager(*old)
+	defaultManagerObj = old
+	defaultManagerOnce = sync.Once{}
 }
 
 func TestSessionTimeout(t *testing.T) {
