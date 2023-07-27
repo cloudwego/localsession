@@ -1,7 +1,7 @@
 # LocalSession
 
 ## Introduction
-LocalSession is used to **implicitly** manage and transmit context **within** or **between** goroutines.
+LocalSession is used to **implicitly** manage and transmit context **within** or **between** goroutines. In canonical way, Go recommands developers to explicitly pass `context.Context` between functions to ensure the downstream callee get desired information from upstream. However this is tedious and ineffecient, resulting in many developers forget (or just don't want) to follow this practice. We have found many cases like that, especially in framework. Therefore, we design and implement a way to implicitly pass application context from root caller to end callee, without troubling intermediate implementation to always bring context.
 
 ## Usage
 ### Session
@@ -68,10 +68,10 @@ func GetDataX() {
 }
 ```
 
-We provides a `defaultManager` to manage session between different goroutines, thus you don't need to make a SessionManager by your own.
+We provide a globally default manager to manage session between different goroutines, as long as you set `InitDefaultManager()` first.
 
 ### Explicitly Transmit Async Context (Recommended)
-You can use `Go()` or `GoSession()` to initiatively transmit your context to other goroutines.
+You can use `Go()` or `GoSession()` to explicitly transmit your context to other goroutines.
 
 ```go
 
@@ -82,6 +82,11 @@ import (
     . "github.com/cloudwego/localsession"
 )
 
+func init() {
+    // initialize default manager first
+	InitDefaultManager(DefaultManagerOptions())
+}
+
 func GetCurSession() Session {
 	s, ok := CurSession()
 	if !ok {
@@ -91,9 +96,6 @@ func GetCurSession() Session {
 }
 
 func main() {
-	// initialize default manager first
-	InitDefaultManager(DefaultManagerOptions())
-
 	var ctx = context.Background()
 	var key, v = "a", "b"
 	var key2, v2 = "c", "d"

@@ -135,12 +135,18 @@ func (self *SessionMap) Disable() {
 	self.enabled.Store(false)
 }
 
-// Export exports underlying map
+// Export COPIES and exports underlying map
 func (self *SessionMap) Export() map[interface{}]interface{} {
 	if self == nil {
 		return nil
 	}
-	return self.storage
+	m := make(map[interface{}]interface{}, len(self.storage))
+	self.lock.RLock()
+	for k, v := range self.storage {
+		m[k] = v
+	}
+	self.lock.RUnlock()
+	return m
 }
 
 // Get value for specific key
