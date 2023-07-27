@@ -46,9 +46,9 @@ func TestResetDefaultManager(t *testing.T) {
 		defaultManagerOnce = sync.Once{}
 		env := `true,10,10s`
 		os.Setenv(SESSION_CONFIG_KEY, env)
-		ResetDefaultManager(ManagerOptions{})
-		act := defaultManagerObj.Options()
 		exp := DefaultManagerOptions()
+		ResetDefaultManager(exp)
+		act := defaultManagerObj.Options()
 		exp.ShardNumber = 10
 		exp.EnableImplicitlyTransmitAsync = true
 		exp.GCInterval = time.Second*10
@@ -57,18 +57,18 @@ func TestResetDefaultManager(t *testing.T) {
 		defaultManagerOnce = sync.Once{}
 		env = `,1000`
 		os.Setenv(SESSION_CONFIG_KEY, env)
-		ResetDefaultManager(ManagerOptions{})
-		act = defaultManagerObj.Options()
 		exp = DefaultManagerOptions()
+		ResetDefaultManager(exp)
+		act = defaultManagerObj.Options()
 		exp.ShardNumber = 1000
 		require.Equal(t, exp, act)
 
 		defaultManagerOnce = sync.Once{}
 		env = `,1,2s`
 		os.Setenv(SESSION_CONFIG_KEY, env)
-		ResetDefaultManager(ManagerOptions{})
-		act = defaultManagerObj.Options()
 		exp = DefaultManagerOptions()
+		ResetDefaultManager(exp)
+		act = defaultManagerObj.Options()
 		exp.ShardNumber = 1
 		exp.GCInterval = time.Second*2
 		require.Equal(t, exp, act)
@@ -76,9 +76,9 @@ func TestResetDefaultManager(t *testing.T) {
 		defaultManagerOnce = sync.Once{}
 		env = `true,,2s`
 		os.Setenv(SESSION_CONFIG_KEY, env)
-		ResetDefaultManager(ManagerOptions{})
-		act = defaultManagerObj.Options()
 		exp = DefaultManagerOptions()
+		ResetDefaultManager(exp)
+		act = defaultManagerObj.Options()
 		exp.EnableImplicitlyTransmitAsync = true
 		exp.GCInterval = time.Second*2
 		require.Equal(t, exp, act)
@@ -88,14 +88,13 @@ func TestResetDefaultManager(t *testing.T) {
 	defaultManagerOnce = sync.Once{}
 }
 
-//
 //go:nocheckptr
 func TestTransparentTransmitAsync(t *testing.T) {
 	old := defaultManagerObj
 	ResetDefaultManager(ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
-		GCInterval: time.Hour,
+		GCInterval: time.Second*2,
 	})
 	s := NewSessionMap(map[interface{}]interface{}{
 		"a": "b",
