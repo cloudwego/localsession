@@ -27,7 +27,7 @@ import (
 //  Value format: [EnableImplicitlyTransmitAsync][,ShardNumber][,GCInterval]
 //  - EnableImplicitlyTransmitAsync: 'true' means enabled, otherwist means disabled
 //  - ShardNumber: integer > 0
-//  - GCInterval: Golang time.Duration format, such as '1h' means one hour
+//  - GCInterval: Golang time.Duration format, such as '10m' means ten minutes for each GC
 // Once the key is set, default option values will be set if the option value doesn't exist.
 const SESSION_CONFIG_KEY = "CLOUDWEGO_SESSION_CONFIG_KEY"
 
@@ -36,24 +36,16 @@ var (
 	defaultManagerOnce sync.Once
 )
 
-func init() {
-	opts := DefaultManagerOptions()
-	checkEnvOptions(&opts)
-	obj := NewSessionManager(opts)
-	defaultManagerObj = &obj
-}
-
 // DefaultManagerOptions returns default options for the default manager 
 func DefaultManagerOptions() ManagerOptions {
 	return ManagerOptions{
 		ShardNumber: 100,
-		GCInterval: time.Hour,
+		GCInterval: time.Minute * 10,
 		EnableImplicitlyTransmitAsync: false,
 	}
 }
 
-// ResetDefaultManager update and restart manager,
-// which means previous sessions (if any) will be cleared.
+// InitDefaultManager update and restart default manager.
 // It accept argument opts and env config both.
 //
 // NOTICE: 
@@ -62,8 +54,8 @@ func DefaultManagerOptions() ManagerOptions {
 //   - For concurrent safety, you can only successfully reset manager ONCE.
 //
 //go:nocheckptr
-func ResetDefaultManager(opts ManagerOptions) {
-	// check env first
+func InitDefaultManager(opts ManagerOptions) {
+	// env config has high priority
 	checkEnvOptions(&opts)
 
 	defaultManagerOnce.Do(func() {
@@ -100,22 +92,37 @@ func checkEnvOptions(opts *ManagerOptions) {
 }
 
 // CurSession gets the session for current goroutine
+//
+// NOTICE: MUST call `InitDefaultManager()` once before using this API
 func CurSession() (Session, bool) {
+	if defaultManagerObj == nil {
+		return nil, false
+	}
 	s, ok := defaultManagerObj.GetSession(SessionID(goID()))
 	return s, ok
 }
 
 // BindSession binds the session with current goroutine
+//
+// NOTICE: MUST call `InitDefaultManager()` once before using this API
 func BindSession(s Session) {
+	if defaultManagerObj == nil {
+		return
+	}
 	defaultManagerObj.BindSession(SessionID(goID()), s)
 }
 
 // UnbindSession unbind a session (if any) with current goroutine
 //
-// Notice: If you want to end the session, 
+// NOTICE: If you want to end the session, 
 // please call `Disable()` (or whatever make the session invalid)
 // on your session's implementation
+//
+// NOTICE: MUST call `InitDefaultManager()` once before using this API
 func UnbindSession() {
+	if defaultManagerObj == nil {
+		return
+	}
 	defaultManagerObj.UnbindSession(SessionID(goID()))
 }
 

@@ -36,8 +36,8 @@ func GetCurSession() Session {
 }
 
 func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
-	// rest DefaultManager with new Options
-	ResetDefaultManager(ManagerOptions{
+	// EnableImplicitlyTransmitAsync must be true 
+	InitDefaultManager(ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
 		GCInterval: time.Hour,
@@ -83,6 +83,9 @@ func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
 }
 
 func ExampleSessionCtx() {
+	// initialize default manager first
+	InitDefaultManager(DefaultManagerOptions())
+
 	var ctx = context.Background()
 	var key, v = "a", "b"
 	var key2, v2 = "c", "d"

@@ -91,6 +91,9 @@ func GetCurSession() Session {
 }
 
 func main() {
+	// initialize default manager first
+	InitDefaultManager(DefaultManagerOptions())
+
 	var ctx = context.Background()
 	var key, v = "a", "b"
 	var key2, v2 = "c", "d"
@@ -196,7 +199,7 @@ func main() {
 You can also set option `EnableImplicitlyTransmitAsync` as true to transparently transmit context. Once the option is enabled, every goroutine will inherit their parent's session.
 ```go
 func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
-	// rest DefaultManager with new Options
+	// EnableImplicitlyTransmitAsync must be true 
 	ResetDefaultManager(ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
