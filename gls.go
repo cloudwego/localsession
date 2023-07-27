@@ -37,7 +37,9 @@ var (
 )
 
 func init() {
-	obj := NewSessionManager(DefaultManagerOptions())
+	opts := DefaultManagerOptions()
+	checkEnvOptions(&opts)
+	obj := NewSessionManager(opts)
 	defaultManagerObj = &obj
 }
 
@@ -62,10 +64,20 @@ func DefaultManagerOptions() ManagerOptions {
 //go:nocheckptr
 func ResetDefaultManager(opts ManagerOptions) {
 	// check env first
+	checkEnvOptions(&opts)
+
+	defaultManagerOnce.Do(func() {
+		if defaultManagerObj != nil {
+			defaultManagerObj.Close()
+		}
+		obj := NewSessionManager(opts)
+		defaultManagerObj = &obj
+	})
+}
+
+func checkEnvOptions(opts *ManagerOptions) {
 	if env := os.Getenv(SESSION_CONFIG_KEY); env != "" {
 		envs := strings.Split(env, ",")
-		opts = DefaultManagerOptions()
-
 		// parse first option as EnableTransparentTransmitAsync
 		if strings.ToLower(envs[0]) == "true" {
 			opts.EnableImplicitlyTransmitAsync = true
@@ -85,14 +97,6 @@ func ResetDefaultManager(opts ManagerOptions) {
 			}
 		}
 	}
-
-	defaultManagerOnce.Do(func() {
-		if defaultManagerObj != nil {
-			defaultManagerObj.Close()
-		}
-		obj := NewSessionManager(opts)
-		defaultManagerObj = &obj
-	})
 }
 
 // CurSession gets the session for current goroutine
