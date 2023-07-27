@@ -25,7 +25,7 @@ type ManagerOptions struct {
 	// EnableImplicitlyTransmitAsync enables transparently transmit 
 	// current session to children goroutines
 	//
-	// WARNING: Once this option enables, `pprof.Do()` must be called before `BindSession()`, 
+	// WARNING: Once this option enables, if you want to use `pprof.Do()`, it must be called before `BindSession()`, 
 	// otherwise transmitting will be dysfunctional
 	EnableImplicitlyTransmitAsync bool
 

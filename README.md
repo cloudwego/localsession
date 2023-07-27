@@ -208,20 +208,15 @@ func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
 		GCInterval: time.Hour,
 	})
 
-	// WARNING: pprof.Do() must be called before BindSession(), 
+	// WARNING: if you want to use `pprof.Do()`, it must be called before `BindSession()`, 
 	// otherwise transparently transmitting session will be dysfunctional
-	labels := pprof.Labels("c", "d")
-	pprof.Do(context.Background(), labels, func(ctx context.Context){})
+	// labels := pprof.Labels("c", "d")
+	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
 	
 	s := NewSessionMap(map[interface{}]interface{}{
 		"a": "b",
 	})
 	BindSession(s)
-
-	// WARNING: pprof.Do() must be called before BindSession(), 
-	// otherwise transparently transmitting session will be dysfunctional
-	// labels := pprof.Labels("c", "d")
-	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
 
 	wg := sync.WaitGroup{}
 	wg.Add(3)
