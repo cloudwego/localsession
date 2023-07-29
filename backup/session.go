@@ -55,11 +55,13 @@ func DefaultOptions() Options {
 // Enable gloabal session manager
 // It uses env config first, the key is localsession.SESSION_CONFIG_KEY
 func Enable(opts Options) {
-	initOnce.Do(func() {
-		localsession.InitDefaultManager(opts.ManagerOptions)
-		shouldUseSession = opts.ShouldUseSession
-		backupHandler = opts.BackupHandler
-	})
+	if opts.Enable {
+		initOnce.Do(func() {
+			localsession.InitDefaultManager(opts.ManagerOptions)
+			shouldUseSession = opts.ShouldUseSession
+			backupHandler = opts.BackupHandler
+		})
+	}
 }
 
 // If Options.ShouldUseSession() == true,
