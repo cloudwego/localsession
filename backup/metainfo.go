@@ -28,12 +28,12 @@ var (
 	initOnce sync.Once
 
 	backupHandler func(pre, cur context.Context) (ctx context.Context, backup bool)
+	handlerOnce   sync.Once
 )
 
 // Options
 type Options struct {
-	Enable        bool
-	BackupHandler func(prev, cur context.Context) (ctx context.Context, backup bool)
+	Enable bool
 	localsession.ManagerOptions
 }
 
@@ -41,7 +41,6 @@ type Options struct {
 func DefaultOptions() Options {
 	return Options{
 		Enable:         false,
-		BackupHandler:  nil,
 		ManagerOptions: localsession.DefaultManagerOptions(),
 	}
 }
@@ -52,7 +51,15 @@ func Enable(opts Options) {
 	if opts.Enable {
 		initOnce.Do(func() {
 			localsession.InitDefaultManager(opts.ManagerOptions)
-			backupHandler = opts.BackupHandler
+		})
+	}
+}
+
+// SetBackupHandler set backup handler once
+func SetBackupHandler(handler func(pre, cur context.Context) (ctx context.Context, backup bool)) {
+	if handler != nil {
+		handlerOnce.Do(func() {
+			backupHandler = handler
 		})
 	}
 }

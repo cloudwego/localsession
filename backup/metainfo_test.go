@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	opts := DefaultOptions()
 	opts.EnableImplicitlyTransmitAsync = true
 	opts.Enable = true
-	opts.BackupHandler = func(prev, cur context.Context) (ctx context.Context, backup bool) {
+	SetBackupHandler(func(prev, cur context.Context) (ctx context.Context, backup bool) {
 		if v := cur.Value(CtxKeyTest1); v == nil {
 			v = prev.Value(CtxKeyTest1)
 			if v != nil {
@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 			return ctx, true
 		}
 		return cur, false
-	}
+	})
 	Enable(opts)
 	os.Exit(m.Run())
 }

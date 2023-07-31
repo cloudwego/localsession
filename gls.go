@@ -24,10 +24,12 @@ import (
 )
 
 // SESSION_CONFIG_KEY is the env key for configuring default session manager.
-//  Value format: [EnableImplicitlyTransmitAsync][,ShardNumber][,GCInterval]
-//  - EnableImplicitlyTransmitAsync: 'true' means enabled, otherwist means disabled
-//  - ShardNumber: integer > 0
-//  - GCInterval: Golang time.Duration format, such as '10m' means ten minutes for each GC
+//
+//	Value format: [EnableImplicitlyTransmitAsync][,ShardNumber][,GCInterval]
+//	- EnableImplicitlyTransmitAsync: 'true' means enabled, otherwist means disabled
+//	- ShardNumber: integer > 0
+//	- GCInterval: Golang time.Duration format, such as '10m' means ten minutes for each GC
+//
 // Once the key is set, default option values will be set if the option value doesn't exist.
 const SESSION_CONFIG_KEY = "CLOUDWEGO_SESSION_CONFIG_KEY"
 
@@ -36,11 +38,11 @@ var (
 	defaultManagerOnce sync.Once
 )
 
-// DefaultManagerOptions returns default options for the default manager 
+// DefaultManagerOptions returns default options for the default manager
 func DefaultManagerOptions() ManagerOptions {
 	return ManagerOptions{
-		ShardNumber: 100,
-		GCInterval: time.Minute * 10,
+		ShardNumber:                   100,
+		GCInterval:                    time.Minute * 10,
 		EnableImplicitlyTransmitAsync: false,
 	}
 }
@@ -48,7 +50,7 @@ func DefaultManagerOptions() ManagerOptions {
 // InitDefaultManager update and restart default manager.
 // It accept argument opts and env config both.
 //
-// NOTICE: 
+// NOTICE:
 //   - It use env SESSION_CONFIG_KEY prior to argument opts;
 //   - If both env and opts are empty, it won't reset manager;
 //   - For concurrent safety, you can only successfully reset manager ONCE.
@@ -81,7 +83,7 @@ func checkEnvOptions(opts *ManagerOptions) {
 				opts.ShardNumber = opt
 			}
 		}
-		
+
 		// parse third option as EnableTransparentTransmitAsync
 		if len(envs) > 2 {
 			if d, err := time.ParseDuration(envs[2]); err == nil && d > time.Second {
@@ -114,7 +116,7 @@ func BindSession(s Session) {
 
 // UnbindSession unbind a session (if any) with current goroutine
 //
-// NOTICE: If you want to end the session, 
+// NOTICE: If you want to end the session,
 // please call `Disable()` (or whatever make the session invalid)
 // on your session's implementation
 //
@@ -138,7 +140,7 @@ func Go(f func()) {
 
 // SessionGo calls f asynchronously and pass s session to the new goroutine
 func GoSession(s Session, f func()) {
-	go func(){
+	go func() {
 		defer func() {
 			if v := recover(); v != nil {
 				println(fmt.Sprintf("GoSession recover: %v", v))
