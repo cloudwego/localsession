@@ -24,10 +24,12 @@ import (
 	"github.com/cloudwego/localsession"
 )
 
+type BackupHandler func(prev, cur context.Context) (ctx context.Context, backup bool)
+
 var (
 	initOnce sync.Once
 
-	backupHandler func(pre, cur context.Context) (ctx context.Context, backup bool)
+	backupHandler BackupHandler
 	handlerOnce   sync.Once
 )
 
@@ -56,7 +58,7 @@ func Enable(opts Options) {
 }
 
 // SetBackupHandler set backup handler once
-func SetBackupHandler(handler func(pre, cur context.Context) (ctx context.Context, backup bool)) {
+func SetBackupHandler(handler BackupHandler) {
 	if handler != nil {
 		handlerOnce.Do(func() {
 			backupHandler = handler
