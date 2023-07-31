@@ -28,15 +28,29 @@ func TestMain(m *testing.M) {
 	opts := DefaultOptions()
 	opts.EnableImplicitlyTransmitAsync = true
 	opts.Enable = true
-	opts.ShouldUseSession = func(ctx context.Context) bool {
-		return true
+	opts.BackupHandler = func(prev, cur context.Context) (ctx context.Context, backup bool) {
+		if v := cur.Value(CtxKeyTest1); v == nil {
+			v = prev.Value(CtxKeyTest1)
+			if v != nil {
+				ctx = context.WithValue(cur, CtxKeyTest1, v)
+			} else {
+				ctx = cur
+			}
+			return ctx, true
+		}
+		return cur, false
 	}
 	Enable(opts)
 	os.Exit(m.Run())
 }
 
-func TestCurSession(t *testing.T) {
-	BackupCtx(metainfo.WithPersistentValues(context.Background(), "a", "a", "b", "b"))
+type CtxKeyTestType struct{}
+
+var CtxKeyTest1 CtxKeyTestType
+
+func TestRecoverCtxOndemands(t *testing.T) {
+	ctx := context.WithValue(context.Background(), CtxKeyTest1, "c")
+	BackupCtx(metainfo.WithPersistentValues(ctx, "a", "a", "b", "b"))
 	type args struct {
 		ctx context.Context
 	}
@@ -46,16 +60,26 @@ func TestCurSession(t *testing.T) {
 		want context.Context
 	}{
 		{
-			name: "",
+			name: "triggered",
 			args: args{
 				ctx: metainfo.WithValue(metainfo.WithPersistentValue(context.Background(), "a", "aa"), "b", "bb"),
 			},
-			want: metainfo.WithPersistentValues(context.Background(), "a", "aa", "b", "b"),
+			want: metainfo.WithPersistentValues(ctx, "a", "aa", "b", "b"),
+		},
+		{
+			name: "not triggered",
+			args: args{
+				ctx: metainfo.WithValue(metainfo.WithPersistentValue(ctx, "a", "aa"), "b", "bb"),
+			},
+			want: metainfo.WithValue(metainfo.WithPersistentValue(ctx, "a", "aa"), "b", "bb"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := RecoverCtxOndemands(tt.args.ctx); got != nil {
+				if v := got.Value(CtxKeyTest1); v == nil {
+					t.Errorf("not got CtxKeyTest1")
+				}
 				a, _ := metainfo.GetPersistentValue(got, "a")
 				ae, _ := metainfo.GetPersistentValue(tt.want, "a")
 				if a != ae {

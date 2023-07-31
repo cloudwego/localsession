@@ -27,26 +27,20 @@ import (
 var (
 	initOnce sync.Once
 
-	shouldUseSession func(ctx context.Context) bool
-
-	backupHandler func(pre, cur context.Context) context.Context
+	backupHandler func(pre, cur context.Context) (ctx context.Context, backup bool)
 )
 
 // Options
 type Options struct {
-	Enable           bool
-	ShouldUseSession func(ctx context.Context) bool
-	BackupHandler    func(prev, cur context.Context) context.Context
+	Enable        bool
+	BackupHandler func(prev, cur context.Context) (ctx context.Context, backup bool)
 	localsession.ManagerOptions
 }
 
 // Default Options
 func DefaultOptions() Options {
 	return Options{
-		Enable: false,
-		ShouldUseSession: func(ctx context.Context) bool {
-			return !metainfo.HasMetaInfo(ctx)
-		},
+		Enable:         false,
 		BackupHandler:  nil,
 		ManagerOptions: localsession.DefaultManagerOptions(),
 	}
@@ -58,7 +52,6 @@ func Enable(opts Options) {
 	if opts.Enable {
 		initOnce.Do(func() {
 			localsession.InitDefaultManager(opts.ManagerOptions)
-			shouldUseSession = opts.ShouldUseSession
 			backupHandler = opts.BackupHandler
 		})
 	}
@@ -69,7 +62,7 @@ func Enable(opts Options) {
 // and pre-defined key-values (through Options.BackupHanlder)
 // from backup context into given context
 func RecoverCtxOndemands(ctx context.Context) context.Context {
-	if shouldUseSession == nil || !shouldUseSession(ctx) {
+	if backupHandler == nil {
 		return ctx
 	}
 	s, ok := localsession.CurSession()
@@ -81,6 +74,15 @@ func RecoverCtxOndemands(ctx context.Context) context.Context {
 		return ctx
 	}
 	pre := c.Export()
+
+	// trigger user-defined handler if any
+	if backupHandler != nil {
+		nctx, backup := backupHandler(pre, ctx)
+		if !backup {
+			return ctx
+		}
+		ctx = nctx
+	}
 
 	// two-way merge all persistent metainfo if pre context has
 	if n := metainfo.CountPersistentValues(pre); n > 0 {
@@ -106,11 +108,6 @@ func RecoverCtxOndemands(ctx context.Context) context.Context {
 			})
 		}
 		ctx = metainfo.WithPersistentValues(ctx, kvs...)
-	}
-
-	// trigger user-defined handler if any
-	if backupHandler != nil {
-		ctx = backupHandler(pre, ctx)
 	}
 
 	return ctx
