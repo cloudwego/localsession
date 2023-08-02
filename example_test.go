@@ -36,24 +36,24 @@ func GetCurSession() Session {
 }
 
 func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
-	// rest DefaultManager with new Options
-	ResetDefaultManager(ManagerOptions{
-		ShardNumber: 10,
+	// EnableImplicitlyTransmitAsync must be true
+	InitDefaultManager(ManagerOptions{
+		ShardNumber:                   10,
 		EnableImplicitlyTransmitAsync: true,
-		GCInterval: time.Hour,
+		GCInterval:                    time.Hour,
 	})
 
-	// WARNING: pprof.Do() must be called before BindSession(), 
+	// WARNING: pprof.Do() must be called before BindSession(),
 	// otherwise transparently transmitting session will be dysfunctional
 	labels := pprof.Labels("c", "d")
-	pprof.Do(context.Background(), labels, func(ctx context.Context){})
-	
+	pprof.Do(context.Background(), labels, func(ctx context.Context) {})
+
 	s := NewSessionMap(map[interface{}]interface{}{
 		"a": "b",
 	})
 	BindSession(s)
 
-	// WARNING: pprof.Do() must be called before BindSession(), 
+	// WARNING: pprof.Do() must be called before BindSession(),
 	// otherwise transparently transmitting session will be dysfunctional
 	// labels := pprof.Labels("c", "d")
 	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
@@ -83,6 +83,9 @@ func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
 }
 
 func ExampleSessionCtx() {
+	// initialize default manager first
+	InitDefaultManager(DefaultManagerOptions())
+
 	var ctx = context.Background()
 	var key, v = "a", "b"
 	var key2, v2 = "c", "d"
@@ -90,7 +93,7 @@ func ExampleSessionCtx() {
 	var sig2 = make(chan struct{})
 
 	// initialize new session with context
-	var session = NewSessionCtx(ctx)// implementation...
+	var session = NewSessionCtx(ctx) // implementation...
 
 	// set specific key-value and update session
 	start := session.WithValue(key, v)
@@ -99,20 +102,20 @@ func ExampleSessionCtx() {
 	BindSession(start)
 
 	// pass to new goroutine...
-	Go(func(){
+	Go(func() {
 		// read specific key under current session
 		val := GetCurSession().Get(key) // val exists
 		ASSERT(val == v)
 		// doSomething....
-		
+
 		// set specific key-value under current session
 		// NOTICE: current session won't change here
 		next := GetCurSession().WithValue(key2, v2)
 		val2 := GetCurSession().Get(key2) // val2 == nil
 		ASSERT(val2 == nil)
-		
+
 		// pass both parent session and new session to sub goroutine
-		GoSession(next, func(){
+		GoSession(next, func() {
 			// read specific key under current session
 			val := GetCurSession().Get(key) // val exists
 			ASSERT(val == v)
@@ -120,16 +123,16 @@ func ExampleSessionCtx() {
 			val2 := GetCurSession().Get(key2) // val2 exists
 			ASSERT(val2 == v2)
 			// doSomething....
-			
+
 			sig2 <- struct{}{}
 
-			<- sig
+			<-sig
 			ASSERT(GetCurSession().IsValid() == false) // current session is invalid
-			
+
 			println("g2 done")
 			sig2 <- struct{}{}
 		})
-		
+
 		Go(func() {
 			// read specific key under current session
 			val := GetCurSession().Get(key) // val exists
@@ -141,29 +144,29 @@ func ExampleSessionCtx() {
 
 			sig2 <- struct{}{}
 
-			<- sig
+			<-sig
 			ASSERT(GetCurSession().IsValid() == false) // current session is invalid
 
 			println("g3 done")
 			sig2 <- struct{}{}
 		})
-		
+
 		BindSession(next)
 		val2 = GetCurSession().Get(key2) // val2 exists
 		ASSERT(v2 == val2)
 
 		sig2 <- struct{}{}
 
-		<- sig
+		<-sig
 		ASSERT(next.IsValid() == false) // next is invalid
 
 		println("g1 done")
 		sig2 <- struct{}{}
 	})
 
-	<- sig2
-	<- sig2
-	<- sig2
+	<-sig2
+	<-sig2
+	<-sig2
 
 	val2 := GetCurSession().Get(key2) // val2 == nil
 	ASSERT(val2 == nil)
@@ -174,10 +177,10 @@ func ExampleSessionCtx() {
 	close(sig)
 
 	ASSERT(start.IsValid() == false) // start is invalid
-	
-	<- sig2
-	<- sig2
-	<- sig2
+
+	<-sig2
+	<-sig2
+	<-sig2
 	println("g0 done")
 
 	UnbindSession()

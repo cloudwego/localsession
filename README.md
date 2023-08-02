@@ -1,7 +1,7 @@
 # LocalSession
 
 ## Introduction
-LocalSession is used to **implicitly** manage and transmit context **within** or **between** goroutines.
+LocalSession is used to **implicitly** manage and transmit context **within** or **between** goroutines. In canonical way, Go recommands developers to explicitly pass `context.Context` between functions to ensure the downstream callee get desired information from upstream. However this is tedious and ineffecient, resulting in many developers forget (or just don't want) to follow this practice. We have found many cases like that, especially in framework. Therefore, we design and implement a way to implicitly pass application context from root caller to end callee, without troubling intermediate implementation to always bring context.
 
 ## Usage
 ### Session
@@ -68,10 +68,10 @@ func GetDataX() {
 }
 ```
 
-We provides a `defaultManager` to manage session between different goroutines, thus you don't need to make a SessionManager by your own.
+We provide a globally default manager to manage session between different goroutines, as long as you set `InitDefaultManager()` first.
 
 ### Explicitly Transmit Async Context (Recommended)
-You can use `Go()` or `GoSession()` to initiatively transmit your context to other goroutines.
+You can use `Go()` or `GoSession()` to explicitly transmit your context to other goroutines.
 
 ```go
 
@@ -81,6 +81,11 @@ import (
 	"context"
     . "github.com/cloudwego/localsession"
 )
+
+func init() {
+    // initialize default manager first
+	InitDefaultManager(DefaultManagerOptions())
+}
 
 func GetCurSession() Session {
 	s, ok := CurSession()
@@ -196,27 +201,22 @@ func main() {
 You can also set option `EnableImplicitlyTransmitAsync` as true to transparently transmit context. Once the option is enabled, every goroutine will inherit their parent's session.
 ```go
 func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
-	// rest DefaultManager with new Options
+	// EnableImplicitlyTransmitAsync must be true 
 	ResetDefaultManager(ManagerOptions{
 		ShardNumber: 10,
 		EnableImplicitlyTransmitAsync: true,
 		GCInterval: time.Hour,
 	})
 
-	// WARNING: pprof.Do() must be called before BindSession(), 
+	// WARNING: if you want to use `pprof.Do()`, it must be called before `BindSession()`, 
 	// otherwise transparently transmitting session will be dysfunctional
-	labels := pprof.Labels("c", "d")
-	pprof.Do(context.Background(), labels, func(ctx context.Context){})
+	// labels := pprof.Labels("c", "d")
+	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
 	
 	s := NewSessionMap(map[interface{}]interface{}{
 		"a": "b",
 	})
 	BindSession(s)
-
-	// WARNING: pprof.Do() must be called before BindSession(), 
-	// otherwise transparently transmitting session will be dysfunctional
-	// labels := pprof.Labels("c", "d")
-	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
 
 	wg := sync.WaitGroup{}
 	wg.Add(3)

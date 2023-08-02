@@ -22,17 +22,17 @@ import (
 
 // ManagerOptions for SessionManager
 type ManagerOptions struct {
-	// EnableImplicitlyTransmitAsync enables transparently transmit 
+	// EnableImplicitlyTransmitAsync enables transparently transmit
 	// current session to children goroutines
 	//
-	// WARNING: Once this option enables, `pprof.Do()` must be called before `BindSession()`, 
+	// WARNING: Once this option enables, if you want to use `pprof.Do()`, it must be called before `BindSession()`,
 	// otherwise transmitting will be dysfunctional
 	EnableImplicitlyTransmitAsync bool
 
-	// ShardNumber is used to shard session id, it must be larger than zero 
+	// ShardNumber is used to shard session id, it must be larger than zero
 	ShardNumber int
 
-	// GCInterval decides the GC interval for SessionManager, 
+	// GCInterval decides the GC interval for SessionManager,
 	// it must be larger than 1s or zero means disable GC
 	GCInterval time.Duration
 }
@@ -47,7 +47,7 @@ type SessionManager struct {
 	shards []*shard
 	inGC   uint32
 	tik    *time.Ticker
-	opts   ManagerOptions 
+	opts   ManagerOptions
 }
 
 var defaultShardCap = 10
@@ -59,7 +59,7 @@ func newShard() *shard {
 }
 
 // NewSessionManager creates a SessionManager with default containers
-// If opts.GCInterval > 0, it will start scheduled GC() loop automatically 
+// If opts.GCInterval > 0, it will start scheduled GC() loop automatically
 func NewSessionManager(opts ManagerOptions) SessionManager {
 	if opts.ShardNumber <= 0 {
 		panic("ShardNumber must be larger than zero")
@@ -70,7 +70,7 @@ func NewSessionManager(opts ManagerOptions) SessionManager {
 	}
 	ret := SessionManager{
 		shards: shards,
-		opts  : opts,
+		opts:   opts,
 	}
 
 	if opts.GCInterval > 0 {
@@ -107,7 +107,7 @@ func (s *shard) Delete(id SessionID) {
 	s.lock.Unlock()
 }
 
-// Get gets specific session 
+// Get gets specific session
 // or get inherited session if option EnableImplicitlyTransmitAsync is true
 func (self *SessionManager) GetSession(id SessionID) (Session, bool) {
 	shard := self.shards[uint64(id)%uint64(self.opts.ShardNumber)]
@@ -118,7 +118,7 @@ func (self *SessionManager) GetSession(id SessionID) (Session, bool) {
 	if !self.opts.EnableImplicitlyTransmitAsync {
 		return nil, false
 	}
-	
+
 	id, ok = getSessionID()
 	if !ok {
 		return nil, false
@@ -130,7 +130,7 @@ func (self *SessionManager) GetSession(id SessionID) (Session, bool) {
 // BindSession binds the session with current goroutine
 func (self *SessionManager) BindSession(id SessionID, s Session) {
 	shard := self.shards[uint64(id)%uint64(self.opts.ShardNumber)]
-	
+
 	shard.Store(id, s)
 
 	if self.opts.EnableImplicitlyTransmitAsync {
@@ -140,17 +140,17 @@ func (self *SessionManager) BindSession(id SessionID, s Session) {
 
 // UnbindSession clears current session
 //
-// Notice: If you want to end the session, 
+// Notice: If you want to end the session,
 // please call `Disable()` (or whatever make the session invalid)
 // on your session's implementation
 func (self *SessionManager) UnbindSession(id SessionID) {
 	shard := self.shards[uint64(id)%uint64(self.opts.ShardNumber)]
-	
+
 	_, ok := shard.Load(id)
 	if ok {
 		shard.Delete(id)
 	}
-	
+
 	if self.opts.EnableImplicitlyTransmitAsync {
 		clearSessionID()
 	}
@@ -180,7 +180,6 @@ func (self SessionManager) GC() {
 
 	atomic.StoreUint32(&self.inGC, 0)
 }
-
 
 // startGC start a scheduled goroutine to call GC() according to GCInterval
 func (self *SessionManager) startGC() {
