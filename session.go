@@ -23,17 +23,17 @@ import (
 
 // Session represents a local storage for one session
 type Session interface {
-    // IsValid tells if the session is valid at present
-    IsValid() bool 
+	// IsValid tells if the session is valid at present
+	IsValid() bool
 
-    // Get returns value for specific key
-    Get(key interface{}) interface{}
-    
-    // WithValue sets value for specific key，and return newly effective session
-    WithValue(key interface{}, val interface{}) Session
+	// Get returns value for specific key
+	Get(key interface{}) interface{}
+
+	// WithValue sets value for specific key，and return newly effective session
+	WithValue(key interface{}, val interface{}) Session
 }
 
-// SessionCtx implements Session with context, 
+// SessionCtx implements Session with context,
 // which means children session WON'T affect parent and sibling sessions
 type SessionCtx struct {
 	enabled *atomic.Value
@@ -55,7 +55,7 @@ func NewSessionCtx(ctx context.Context) SessionCtx {
 func NewSessionCtxWithTimeout(ctx context.Context, timeout time.Duration) SessionCtx {
 	ret := NewSessionCtx(ctx)
 	go func() {
-		<- time.NewTimer(timeout).C
+		<-time.NewTimer(timeout).C
 		ret.Disable()
 	}()
 	return ret
@@ -90,7 +90,7 @@ func (self SessionCtx) WithValue(key interface{}, val interface{}) Session {
 	}
 }
 
-// NewSessionMap implements Session with map, 
+// NewSessionMap implements Session with map,
 // which means children session WILL affect parent session and sibling sessions
 type SessionMap struct {
 	enabled *atomic.Value
@@ -113,7 +113,7 @@ func NewSessionMap(m map[interface{}]interface{}) *SessionMap {
 func NewSessionMapWithTimeout(m map[interface{}]interface{}, timeout time.Duration) *SessionMap {
 	ret := NewSessionMap(m)
 	go func() {
-		<- time.NewTimer(timeout).C
+		<-time.NewTimer(timeout).C
 		ret.Disable()
 	}()
 	return ret

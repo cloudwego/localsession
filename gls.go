@@ -57,10 +57,10 @@ func DefaultManagerOptions() ManagerOptions {
 //
 //go:nocheckptr
 func InitDefaultManager(opts ManagerOptions) {
-	// env config has high priority
-	checkEnvOptions(&opts)
-
 	defaultManagerOnce.Do(func() {
+		// env config has high priority
+		checkEnvOptions(&opts)
+
 		if defaultManagerObj != nil {
 			defaultManagerObj.Close()
 		}

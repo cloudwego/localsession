@@ -18,20 +18,13 @@ package backup
 
 import (
 	"context"
-	"sync"
 
 	"github.com/bytedance/gopkg/cloud/metainfo"
 	"github.com/cloudwego/localsession"
 )
 
+// BackupHandler is used to decide and recover prev context to cur context
 type BackupHandler func(prev, cur context.Context) (ctx context.Context, backup bool)
-
-var (
-	initOnce sync.Once
-
-	backupHandler BackupHandler
-	handlerOnce   sync.Once
-)
 
 // Options
 type Options struct {
@@ -47,22 +40,11 @@ func DefaultOptions() Options {
 	}
 }
 
-// Enable gloabal session manager
+// Init gloabal session manager
 // It uses env config first, the key is localsession.SESSION_CONFIG_KEY
-func Enable(opts Options) {
+func Init(opts Options) {
 	if opts.Enable {
-		initOnce.Do(func() {
-			localsession.InitDefaultManager(opts.ManagerOptions)
-		})
-	}
-}
-
-// SetBackupHandler set backup handler once
-func SetBackupHandler(handler BackupHandler) {
-	if handler != nil {
-		handlerOnce.Do(func() {
-			backupHandler = handler
-		})
+		localsession.InitDefaultManager(opts.ManagerOptions)
 	}
 }
 
@@ -70,8 +52,8 @@ func SetBackupHandler(handler BackupHandler) {
 // this func will try to merge metainfo
 // and pre-defined key-values (through Options.BackupHanlder)
 // from backup context into given context
-func RecoverCtxOndemands(ctx context.Context) context.Context {
-	if backupHandler == nil {
+func RecoverCtxOndemands(ctx context.Context, handler BackupHandler) context.Context {
+	if handler == nil {
 		return ctx
 	}
 	s, ok := localsession.CurSession()
@@ -85,13 +67,11 @@ func RecoverCtxOndemands(ctx context.Context) context.Context {
 	pre := c.Export()
 
 	// trigger user-defined handler if any
-	if backupHandler != nil {
-		nctx, backup := backupHandler(pre, ctx)
-		if !backup {
-			return ctx
-		}
-		ctx = nctx
+	nctx, backup := handler(pre, ctx)
+	if !backup {
+		return ctx
 	}
+	ctx = nctx
 
 	// two-way merge all persistent metainfo if pre context has
 	if n := metainfo.CountPersistentValues(pre); n > 0 {
@@ -107,7 +87,6 @@ func RecoverCtxOndemands(ctx context.Context) context.Context {
 				return true
 			})
 		} else {
-			kvs = make([]string, 0, n*2)
 			metainfo.RangePersistentValues(pre, func(k, v string) bool {
 				// filter kvs which exists in cur
 				if _, ok := mkvs[k]; !ok {

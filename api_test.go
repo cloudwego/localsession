@@ -34,13 +34,13 @@ func TestMain(m *testing.M) {
 
 func TestResetDefaultManager(t *testing.T) {
 	old := defaultManagerObj
-	
+
 	t.Run("arg", func(t *testing.T) {
 		defaultManagerOnce = sync.Once{}
 		exp := ManagerOptions{
-			ShardNumber: 1,
+			ShardNumber:                   1,
 			EnableImplicitlyTransmitAsync: true,
-			GCInterval: time.Second*2,
+			GCInterval:                    time.Second * 2,
 		}
 		InitDefaultManager(exp)
 		act := defaultManagerObj.Options()
@@ -56,7 +56,7 @@ func TestResetDefaultManager(t *testing.T) {
 		act := defaultManagerObj.Options()
 		exp.ShardNumber = 10
 		exp.EnableImplicitlyTransmitAsync = true
-		exp.GCInterval = time.Second*10
+		exp.GCInterval = time.Second * 10
 		require.Equal(t, exp, act)
 
 		defaultManagerOnce = sync.Once{}
@@ -75,7 +75,7 @@ func TestResetDefaultManager(t *testing.T) {
 		InitDefaultManager(exp)
 		act = defaultManagerObj.Options()
 		exp.ShardNumber = 1
-		exp.GCInterval = time.Second*2
+		exp.GCInterval = time.Second * 2
 		require.Equal(t, exp, act)
 
 		defaultManagerOnce = sync.Once{}
@@ -85,7 +85,7 @@ func TestResetDefaultManager(t *testing.T) {
 		InitDefaultManager(exp)
 		act = defaultManagerObj.Options()
 		exp.EnableImplicitlyTransmitAsync = true
-		exp.GCInterval = time.Second*2
+		exp.GCInterval = time.Second * 2
 		require.Equal(t, exp, act)
 	})
 
@@ -97,9 +97,9 @@ func TestResetDefaultManager(t *testing.T) {
 func TestTransparentTransmitAsync(t *testing.T) {
 	old := defaultManagerObj
 	InitDefaultManager(ManagerOptions{
-		ShardNumber: 10,
+		ShardNumber:                   10,
 		EnableImplicitlyTransmitAsync: true,
-		GCInterval: time.Second*2,
+		GCInterval:                    time.Second * 2,
 	})
 	s := NewSessionMap(map[interface{}]interface{}{
 		"a": "b",
@@ -107,13 +107,12 @@ func TestTransparentTransmitAsync(t *testing.T) {
 
 	labels := pprof.Labels("c", "d")
 
-	// WARNING: pprof.Do() must be called before BindSession(), 
+	// WARNING: pprof.Do() must be called before BindSession(),
 	// otherwise transparently transmitting session will be dysfunctional
 	pprof.Do(context.Background(), labels, func(ctx context.Context) {})
-	
+
 	BindSession(s)
 
-	
 	wg := sync.WaitGroup{}
 	wg.Add(3)
 	go func() {
@@ -145,7 +144,7 @@ func TestSessionTimeout(t *testing.T) {
 	ss := s.WithValue(1, 2)
 	m := NewSessionMapWithTimeout(map[interface{}]interface{}{}, time.Second)
 	mm := m.WithValue(1, 2)
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 2)
 	require.False(t, ss.IsValid())
 	require.False(t, mm.IsValid())
 }
@@ -158,7 +157,7 @@ func TestSessionCtx(t *testing.T) {
 	var sig2 = make(chan struct{})
 
 	// initialize new session with context
-	var session = NewSessionCtx(ctx)// implementation...
+	var session = NewSessionCtx(ctx) // implementation...
 
 	// set specific key-value and update session
 	start := session.WithValue(key, v)
@@ -167,20 +166,20 @@ func TestSessionCtx(t *testing.T) {
 	BindSession(start)
 
 	// pass to new goroutine...
-	Go(func(){
+	Go(func() {
 		// read specific key under current session
 		val := mustCurSession().Get(key) // val exists
 		require.Equal(t, v, val)
 		// doSomething....
-		
+
 		// set specific key-value under current session
 		// NOTICE: current session won't change here
 		next := mustCurSession().WithValue(key2, v2)
 		val2 := mustCurSession().Get(key2) // val2 == nil
 		require.Nil(t, val2)
-		
+
 		// pass both parent session and new session to sub goroutine
-		GoSession(next, func(){
+		GoSession(next, func() {
 			// read specific key under current session
 			val := mustCurSession().Get(key) // val exists
 			require.Equal(t, v, val)
@@ -188,16 +187,16 @@ func TestSessionCtx(t *testing.T) {
 			val2 := mustCurSession().Get(key2) // val2 exists
 			require.Equal(t, v2, val2)
 			// doSomething....
-			
+
 			sig2 <- struct{}{}
 
-			<- sig
+			<-sig
 			require.False(t, mustCurSession().IsValid()) // current session is invalid
-			
+
 			println("g2 done")
 			sig2 <- struct{}{}
 		})
-		
+
 		Go(func() {
 			// read specific key under current session
 			val := mustCurSession().Get(key) // val exists
@@ -209,29 +208,29 @@ func TestSessionCtx(t *testing.T) {
 
 			sig2 <- struct{}{}
 
-			<- sig
+			<-sig
 			require.False(t, mustCurSession().IsValid()) // current session is invalid
 
 			println("g3 done")
 			sig2 <- struct{}{}
 		})
-		
+
 		BindSession(next)
 		val2 = mustCurSession().Get(key2) // val2 exists
 		require.Equal(t, v2, val2)
 
 		sig2 <- struct{}{}
 
-		<- sig
+		<-sig
 		require.False(t, next.IsValid()) // next is invalid
 
 		println("g1 done")
 		sig2 <- struct{}{}
 	})
 
-	<- sig2
-	<- sig2
-	<- sig2
+	<-sig2
+	<-sig2
+	<-sig2
 
 	val2 := mustCurSession().Get(key2) // val2 == nil
 	require.Nil(t, val2)
@@ -242,10 +241,10 @@ func TestSessionCtx(t *testing.T) {
 	close(sig)
 
 	require.False(t, start.IsValid()) // start is invalid
-	
-	<- sig2
-	<- sig2
-	<- sig2
+
+	<-sig2
+	<-sig2
+	<-sig2
 	println("g0 done")
 
 	UnbindSession()
@@ -263,7 +262,7 @@ func TestSessionMap(t *testing.T) {
 	var sig2 = make(chan struct{})
 
 	// initialize new session with context
-	var session = NewSessionMap(map[interface{}]interface{}{})// implementation...
+	var session = NewSessionMap(map[interface{}]interface{}{}) // implementation...
 
 	// set specific key-value and update session
 	start := session.WithValue(key, v)
@@ -272,20 +271,20 @@ func TestSessionMap(t *testing.T) {
 	BindSession(start)
 
 	// pass to new goroutine...
-	Go(func(){
+	Go(func() {
 		// read specific key under current session
 		val := mustCurSession().Get(key) // val exists
 		require.Equal(t, v, val)
 		// doSomething....
-		
+
 		// set specific key-value under current session
 		// NOTICE: current session won't change here
 		next := mustCurSession().WithValue(key2, v2)
 		val2 := mustCurSession().Get(key2) // val2 exist
 		require.Equal(t, v2, val2)
-		
+
 		// pass both parent session and new session to sub goroutine
-		GoSession(next, func(){
+		GoSession(next, func() {
 			// read specific key under current session
 			val := mustCurSession().Get(key) // val exists
 			require.Equal(t, v, val)
@@ -293,16 +292,16 @@ func TestSessionMap(t *testing.T) {
 			val2 := mustCurSession().Get(key2) // val2 exists
 			require.Equal(t, v2, val2)
 			// doSomething....
-			
+
 			sig2 <- struct{}{}
 
-			<- sig
+			<-sig
 			require.False(t, mustCurSession().IsValid()) // current session is invalid
-			
+
 			println("g2 done")
 			sig2 <- struct{}{}
 		})
-		
+
 		Go(func() {
 			// read specific key under current session
 			val := mustCurSession().Get(key) // val exists
@@ -314,29 +313,29 @@ func TestSessionMap(t *testing.T) {
 
 			sig2 <- struct{}{}
 
-			<- sig
+			<-sig
 			require.False(t, mustCurSession().IsValid()) // current session is invalid
 
 			println("g3 done")
 			sig2 <- struct{}{}
 		})
-		
+
 		BindSession(next)
 		val2 = mustCurSession().Get(key2) // val2 exists
 		require.Equal(t, v2, val2)
 
 		sig2 <- struct{}{}
 
-		<- sig
+		<-sig
 		require.False(t, next.IsValid()) // next is invalid
 
 		println("g1 done")
 		sig2 <- struct{}{}
 	})
 
-	<- sig2
-	<- sig2
-	<- sig2
+	<-sig2
+	<-sig2
+	<-sig2
 
 	val2 := mustCurSession().Get(key2) // val2 exists
 	require.Equal(t, v2, val2)
@@ -347,26 +346,25 @@ func TestSessionMap(t *testing.T) {
 	close(sig)
 
 	require.False(t, start.IsValid()) // start is invalid
-	
-	<- sig2
-	<- sig2
-	<- sig2
+
+	<-sig2
+	<-sig2
+	<-sig2
 	println("g0 done")
 
 	UnbindSession()
 }
 
-
 func TestSessionManager_GC(t *testing.T) {
-	inter := time.Second*2
+	inter := time.Second * 2
 	sd := 10
 	manager := NewSessionManager(ManagerOptions{
 		ShardNumber: sd,
-		GCInterval: inter,
+		GCInterval:  inter,
 	})
-	
+
 	var N = 1000
-	for i:=0; i<N; i++ {
+	for i := 0; i < N; i++ {
 		m := map[interface{}]interface{}{}
 		s := NewSessionMap(m)
 		manager.BindSession(SessionID(i), s)
@@ -380,7 +378,7 @@ func TestSessionManager_GC(t *testing.T) {
 		shard.lock.Unlock()
 		require.Equal(t, N/sd, l)
 	}
-	time.Sleep(inter+inter>>1)
+	time.Sleep(inter + inter>>1)
 	sum := 0
 	for _, shard := range manager.shards {
 		shard.lock.Lock()
@@ -396,7 +394,7 @@ func BenchmarkSessionManager_CurSession(b *testing.B) {
 
 	b.Run("sync", func(b *testing.B) {
 		BindSession(s)
-		for i:=0; i<b.N; i++ {
+		for i := 0; i < b.N; i++ {
 			_ = mustCurSession()
 		}
 		UnbindSession()
@@ -417,7 +415,7 @@ func BenchmarkSessionManager_BindSession(b *testing.B) {
 	s := NewSessionCtx(context.Background())
 
 	b.Run("sync", func(b *testing.B) {
-		for i:=0; i<b.N; i++ {
+		for i := 0; i < b.N; i++ {
 			BindSession(s)
 		}
 	})
@@ -434,12 +432,12 @@ func BenchmarkSessionManager_BindSession(b *testing.B) {
 func BenchmarkSessionCtx_WithValue(b *testing.B) {
 	s := NewSessionCtx(context.Background())
 	var ss Session = s
-	for i := 0; i<N; i++ {
+	for i := 0; i < N; i++ {
 		ss = ss.WithValue(i, i)
 	}
-	
+
 	b.Run("sync", func(b *testing.B) {
-		for i:=0; i<b.N; i++ {
+		for i := 0; i < b.N; i++ {
 			_ = ss.WithValue(N/2, -1)
 		}
 	})
@@ -453,24 +451,23 @@ func BenchmarkSessionCtx_WithValue(b *testing.B) {
 	})
 }
 
-
 func BenchmarkSessionCtx_Get(b *testing.B) {
 	s := NewSessionCtx(context.Background())
 	var ss Session = s
-	for i := 0; i<N; i++ {
+	for i := 0; i < N; i++ {
 		ss = ss.WithValue(i, i)
 	}
-	
+
 	b.Run("sync", func(b *testing.B) {
-		for i:=0; i<b.N; i++ {
-			_ = ss.Get(N/2)
+		for i := 0; i < b.N; i++ {
+			_ = ss.Get(N / 2)
 		}
 	})
 
 	b.Run("parallel", func(b *testing.B) {
 		b.RunParallel(func(p *testing.PB) {
 			for p.Next() {
-				_ = ss.Get(N/2)
+				_ = ss.Get(N / 2)
 			}
 		})
 	})
@@ -479,12 +476,12 @@ func BenchmarkSessionCtx_Get(b *testing.B) {
 func BenchmarkSessionMap_WithValue(b *testing.B) {
 	s := NewSessionMap(map[interface{}]interface{}{})
 	var ss Session = s
-	for i := 0; i<N; i++ {
+	for i := 0; i < N; i++ {
 		ss = ss.WithValue(i, i)
 	}
-	
+
 	b.Run("sync", func(b *testing.B) {
-		for i:=0; i<b.N; i++ {
+		for i := 0; i < b.N; i++ {
 			_ = ss.WithValue(N/2, -1)
 		}
 	})
@@ -498,24 +495,23 @@ func BenchmarkSessionMap_WithValue(b *testing.B) {
 	})
 }
 
-
 func BenchmarkSessionMap_Get(b *testing.B) {
 	s := NewSessionMap(map[interface{}]interface{}{})
 	var ss Session = s
-	for i := 0; i<N; i++ {
+	for i := 0; i < N; i++ {
 		ss = ss.WithValue(i, i)
 	}
-	
+
 	b.Run("sync", func(b *testing.B) {
-		for i:=0; i<b.N; i++ {
-			_ = ss.Get(N/2)
+		for i := 0; i < b.N; i++ {
+			_ = ss.Get(N / 2)
 		}
 	})
 
 	b.Run("parallel", func(b *testing.B) {
 		b.RunParallel(func(p *testing.PB) {
 			for p.Next() {
-				_ = ss.Get(N/2)
+				_ = ss.Get(N / 2)
 			}
 		})
 	})
@@ -524,14 +520,14 @@ func BenchmarkSessionMap_Get(b *testing.B) {
 func BenchmarkGLS_Get(b *testing.B) {
 	s := NewSessionCtx(context.Background())
 	var ss Session = s
-	for i := 0; i<N; i++ {
+	for i := 0; i < N; i++ {
 		ss = ss.WithValue(i, i)
 	}
 
 	b.Run("sync", func(b *testing.B) {
 		BindSession(ss)
-		for i:=0; i<b.N; i++ {
-			_ = mustCurSession().Get(N/2)
+		for i := 0; i < b.N; i++ {
+			_ = mustCurSession().Get(N / 2)
 		}
 		UnbindSession()
 	})
@@ -540,7 +536,7 @@ func BenchmarkGLS_Get(b *testing.B) {
 		b.RunParallel(func(p *testing.PB) {
 			BindSession(ss)
 			for p.Next() {
-				_ = mustCurSession().Get(N/2)
+				_ = mustCurSession().Get(N / 2)
 			}
 			UnbindSession()
 		})
@@ -550,14 +546,14 @@ func BenchmarkGLS_Get(b *testing.B) {
 func BenchmarkGLS_Set(b *testing.B) {
 	s := NewSessionCtx(context.Background())
 	var ss Session = s
-	
-	for i := 0; i<N; i++ {
+
+	for i := 0; i < N; i++ {
 		ss = ss.WithValue(i, i)
 	}
 
 	b.Run("sync", func(b *testing.B) {
 		BindSession(ss)
-		for i:=0; i<b.N; i++ {
+		for i := 0; i < b.N; i++ {
 			BindSession(mustCurSession().WithValue(N/2, -1))
 		}
 		UnbindSession()
@@ -573,4 +569,3 @@ func BenchmarkGLS_Set(b *testing.B) {
 		})
 	})
 }
-
