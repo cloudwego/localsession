@@ -48,11 +48,10 @@ func Init(opts Options) {
 	}
 }
 
-// If Options.ShouldUseSession() == true,
-// this func will try to merge metainfo
+// If handler != nil, this func will try to merge metainfo
 // and pre-defined key-values (through Options.BackupHanlder)
 // from backup context into given context
-func RecoverCtxOndemands(ctx context.Context, handler BackupHandler) context.Context {
+func RecoverCtxOnDemands(ctx context.Context, handler BackupHandler) context.Context {
 	if handler == nil {
 		return ctx
 	}

@@ -80,7 +80,7 @@ func TestRecoverCtxOndemands(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := RecoverCtxOndemands(tt.args.ctx, tt.args.handler); got != nil {
+			if got := RecoverCtxOnDemands(tt.args.ctx, tt.args.handler); got != nil {
 				if v := got.Value(CtxKeyTest1); v == nil {
 					t.Errorf("not got CtxKeyTest1")
 				}
