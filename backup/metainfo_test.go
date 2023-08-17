@@ -100,3 +100,17 @@ func TestRecoverCtxOndemands(t *testing.T) {
 		})
 	}
 }
+
+func TestUseNew(t *testing.T) {
+	BackupCtx(context.WithValue(context.Background(), "a", "b"))
+	ctx := RecoverCtxOnDemands(context.Background(), func(prev, cur context.Context) (ctx context.Context, backup bool) {
+		ctx = context.WithValue(cur, "d", "c")
+		return ctx, false
+	})
+	if v := ctx.Value("d"); v != "c" {
+		t.Fatal(v)
+	}
+	if v := ctx.Value("a"); v == "b" {
+		t.Fatal(v)
+	}
+}

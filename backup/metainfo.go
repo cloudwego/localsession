@@ -66,11 +66,10 @@ func RecoverCtxOnDemands(ctx context.Context, handler BackupHandler) context.Con
 	pre := c.Export()
 
 	// trigger user-defined handler if any
-	nctx, backup := handler(pre, ctx)
+	ctx, backup := handler(pre, ctx)
 	if !backup {
 		return ctx
 	}
-	ctx = nctx
 
 	// two-way merge all persistent metainfo if pre context has
 	if n := metainfo.CountPersistentValues(pre); n > 0 {
