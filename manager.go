@@ -18,6 +18,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 )
 
 // ManagerOptions for SessionManager
@@ -26,7 +27,7 @@ type ManagerOptions struct {
 	// current session to children goroutines
 	//
 	// WARNING: Once this option enables, if you want to use `pprof.Do()`, it must be called before `BindSession()`,
-	// otherwise transmitting will be dysfunctional
+	// otherwise transmitting will be disfunctional
 	EnableImplicitlyTransmitAsync bool
 
 	// ShardNumber is used to shard session id, it must be larger than zero
@@ -90,7 +91,12 @@ type SessionID uint64
 //go:nocheckptr
 func (s *shard) Load(id SessionID) (Session, bool) {
 	s.lock.RLock()
-	session, ok := s.m[id]
+
+	// Hypothesis: map must be a pointer here, which is true for Golang at present
+	p := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.m)))
+	m := *(*map[SessionID]Session)(unsafe.Pointer(&p))
+
+	session, ok := m[id]
 	s.lock.RUnlock()
 	return session, ok
 }
@@ -174,7 +180,8 @@ func (self SessionManager) GC() {
 				m[id] = s
 			}
 		}
-		shard.m = m
+		// Hypothesis: map must be a pointer here, which is true for Golang at present
+		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&shard.m)), *(*unsafe.Pointer)(unsafe.Pointer(&m)))
 		shard.lock.RUnlock()
 	}
 

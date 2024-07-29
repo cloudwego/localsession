@@ -389,6 +389,32 @@ func TestSessionManager_GC(t *testing.T) {
 	require.Equal(t, N/2, sum)
 }
 
+func TestRace(t *testing.T) {
+	manager := NewSessionManager(ManagerOptions{
+		ShardNumber: 1,
+		GCInterval:  time.Second,
+	})
+	var N = 1000
+	var start sync.RWMutex
+	start.Lock()
+	wg := sync.WaitGroup{}
+	for i := 0; i < N; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			s := NewSessionMap(map[interface{}]interface{}{}).WithValue("a", "b")
+			start.RLock()
+			manager.BindSession(SessionID(i), s)
+			ss, ok := manager.GetSession(SessionID(i))
+			if !ok || ss.Get("a") != "b" {
+				t.Fatal("not equal")
+			}
+		}(i)
+	}
+	start.Unlock()
+	wg.Wait()
+}
+
 func BenchmarkSessionManager_CurSession(b *testing.B) {
 	s := NewSessionCtx(context.Background())
 
