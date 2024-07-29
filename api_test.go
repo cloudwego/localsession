@@ -374,7 +374,7 @@ func TestSessionManager_GC(t *testing.T) {
 	}
 	for _, shard := range manager.shards {
 		shard.lock.Lock()
-		l := len(shard.m)
+		l := len(*shard.m)
 		shard.lock.Unlock()
 		require.Equal(t, N/sd, l)
 	}
@@ -382,7 +382,7 @@ func TestSessionManager_GC(t *testing.T) {
 	sum := 0
 	for _, shard := range manager.shards {
 		shard.lock.Lock()
-		l := len(shard.m)
+		l := len(*shard.m)
 		shard.lock.Unlock()
 		sum += l
 	}

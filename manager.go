@@ -40,7 +40,7 @@ type ManagerOptions struct {
 
 type shard struct {
 	lock sync.RWMutex
-	m    map[SessionID]Session
+	m    *map[SessionID]Session
 }
 
 // SessionManager maintain and manage sessions
@@ -55,7 +55,8 @@ var defaultShardCap = 10
 
 func newShard() *shard {
 	ret := new(shard)
-	ret.m = make(map[SessionID]Session, defaultShardCap)
+	m := make(map[SessionID]Session, defaultShardCap)
+	ret.m = &m
 	return ret
 }
 
@@ -92,9 +93,8 @@ type SessionID uint64
 func (s *shard) Load(id SessionID) (Session, bool) {
 	s.lock.RLock()
 
-	// Hypothesis: map must be a pointer here, which is true for Golang at present
 	p := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.m)))
-	m := *(*map[SessionID]Session)(unsafe.Pointer(&p))
+	m := *(*map[SessionID]Session)(unsafe.Pointer(p))
 
 	session, ok := m[id]
 	s.lock.RUnlock()
@@ -103,13 +103,15 @@ func (s *shard) Load(id SessionID) (Session, bool) {
 
 func (s *shard) Store(id SessionID, se Session) {
 	s.lock.Lock()
-	s.m[id] = se
+	m := *s.m
+	m[id] = se
 	s.lock.Unlock()
 }
 
 func (s *shard) Delete(id SessionID) {
 	s.lock.Lock()
-	delete(s.m, id)
+	m := *s.m
+	delete(m, id)
 	s.lock.Unlock()
 }
 
@@ -172,7 +174,7 @@ func (self SessionManager) GC() {
 
 	for _, shard := range self.shards {
 		shard.lock.RLock()
-		n := shard.m
+		n := *shard.m
 		m := make(map[SessionID]Session, len(n))
 		for id, s := range n {
 			// Warning: may panic here?
@@ -180,8 +182,7 @@ func (self SessionManager) GC() {
 				m[id] = s
 			}
 		}
-		// Hypothesis: map must be a pointer here, which is true for Golang at present
-		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&shard.m)), *(*unsafe.Pointer)(unsafe.Pointer(&m)))
+		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&shard.m)), unsafe.Pointer(&m))
 		shard.lock.RUnlock()
 	}
 
