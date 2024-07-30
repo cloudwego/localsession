@@ -18,7 +18,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"unsafe"
 )
 
 // ManagerOptions for SessionManager
@@ -40,7 +39,7 @@ type ManagerOptions struct {
 
 type shard struct {
 	lock sync.RWMutex
-	m    *map[SessionID]Session
+	m    map[SessionID]Session
 }
 
 // SessionManager maintain and manage sessions
@@ -55,8 +54,7 @@ var defaultShardCap = 10
 
 func newShard() *shard {
 	ret := new(shard)
-	m := make(map[SessionID]Session, defaultShardCap)
-	ret.m = &m
+	ret.m = make(map[SessionID]Session, defaultShardCap)
 	return ret
 }
 
@@ -92,25 +90,23 @@ type SessionID uint64
 func (s *shard) Load(id SessionID) (Session, bool) {
 	s.lock.RLock()
 
-	p := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.m)))
-	m := *(*map[SessionID]Session)(unsafe.Pointer(p))
+	// p := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.m)))
+	// m := *(*map[SessionID]Session)(unsafe.Pointer(p))
 
-	session, ok := m[id]
+	session, ok := s.m[id]
 	s.lock.RUnlock()
 	return session, ok
 }
 
 func (s *shard) Store(id SessionID, se Session) {
 	s.lock.Lock()
-	m := *s.m
-	m[id] = se
+	s.m[id] = se
 	s.lock.Unlock()
 }
 
 func (s *shard) Delete(id SessionID) {
 	s.lock.Lock()
-	m := *s.m
-	delete(m, id)
+	delete(s.m, id)
 	s.lock.Unlock()
 }
 
@@ -170,8 +166,8 @@ func (self SessionManager) GC() {
 	}
 
 	for _, shard := range self.shards {
-		shard.lock.RLock()
-		n := *shard.m
+		shard.lock.Lock()
+		n := shard.m
 		m := make(map[SessionID]Session, len(n))
 		for id, s := range n {
 			// Warning: may panic here?
@@ -179,8 +175,9 @@ func (self SessionManager) GC() {
 				m[id] = s
 			}
 		}
-		atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&shard.m)), unsafe.Pointer(&m))
-		shard.lock.RUnlock()
+		// atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&shard.m)), unsafe.Pointer(&m))
+		shard.m = m
+		shard.lock.Unlock()
 	}
 
 	atomic.StoreUint32(&self.inGC, 0)
