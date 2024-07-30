@@ -16,6 +16,8 @@ package localsession
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"os"
 	"runtime/pprof"
 	"sync"
@@ -593,5 +595,109 @@ func BenchmarkGLS_Set(b *testing.B) {
 			}
 			UnbindSession()
 		})
+	})
+}
+
+func emitLoops(m *SessionManager, ctx context.Context, N int, s *stat) {
+	for i := 0; i < N; i++ {
+		go func() {
+			for {
+				if ctx.Err() != nil {
+					return
+				}
+				start := time.Now()
+				session := NewSessionCtx(ctx)
+				ss := session.WithValue("a", "b")
+				m.BindSession(SessionID(goID()), ss)
+				sss, _ := m.GetSession(SessionID(goID()))
+				if val := sss.Get("a"); val != "b" {
+					panic(fmt.Sprintf("unexpected val: %#v", val))
+				}
+				m.UnbindSession(SessionID(goID()))
+				cost := time.Now().Sub(start)
+				s.Update(cost)
+				for a := 0; a < 10; a++ {
+					time.Sleep(time.Microsecond * 50)
+					for b := 0; b < 100000; b++ {
+						_ = b
+					}
+				}
+			}
+		}()
+	}
+}
+
+func BenchmarkLoops(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		for b := 0; b < 100000; b++ {
+			_ = b
+		}
+	}
+}
+
+type stat struct {
+	max   time.Duration
+	min   time.Duration
+	sum   time.Duration
+	count int
+
+	mux sync.RWMutex
+}
+
+func (st *stat) Update(cost time.Duration) {
+	st.mux.Lock()
+	defer st.mux.Unlock()
+	if cost > st.max {
+		st.max = cost
+	} else if cost < st.min {
+		st.min = cost
+	}
+	st.count++
+	st.sum += cost
+	return
+}
+
+func (st *stat) String() string {
+	st.mux.RLock()
+	defer st.mux.RUnlock()
+	return fmt.Sprintf("min:%dns, max:%dns, avg:%dns", st.min, st.max, st.sum/time.Duration(st.count))
+}
+
+func TestRealBizGLS(t *testing.T) {
+	var runner = func(N int) {
+		m := NewSessionManager(ManagerOptions{
+			ShardNumber: 100,
+			GCInterval:  time.Second,
+		})
+		s := &stat{
+			min: time.Duration(math.MaxInt64),
+		}
+		ctx, _ := context.WithTimeout(context.Background(), time.Second*60)
+		emitLoops(&m, ctx, N, s)
+		go func(ctx context.Context) {
+			tt := time.NewTicker(time.Second)
+			for {
+				select {
+				case <-tt.C:
+					{
+						println(s.String())
+					}
+				case <-ctx.Done():
+					return
+				}
+
+			}
+		}(ctx)
+		<-ctx.Done()
+	}
+
+	t.Run("10", func(t *testing.T) {
+		runner(10)
+	})
+	t.Run("100", func(t *testing.T) {
+		runner(100)
+	})
+	t.Run("1000", func(t *testing.T) {
+		runner(1000)
 	})
 }
