@@ -161,7 +161,7 @@ func (self *SessionMap) Get(key interface{}) interface{} {
 }
 
 // Set value for specific key，and return itself
-func (self *SessionMap) WithValue(key interface{}, val interface{}) Session {
+func (self *SessionMap) WithValue(key, val interface{}) Session {
 	if self == nil {
 		return nil
 	}

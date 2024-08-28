@@ -26,7 +26,7 @@ type ManagerOptions struct {
 	// current session to children goroutines
 	//
 	// WARNING: Once this option enables, if you want to use `pprof.Do()`, it must be called before `BindSession()`,
-	// otherwise transmitting will be dysfunctional
+	// otherwise transmitting will be disfunctional
 	EnableImplicitlyTransmitAsync bool
 
 	// ShardNumber is used to shard session id, it must be larger than zero
@@ -87,9 +87,12 @@ func (self SessionManager) Options() ManagerOptions {
 // SessionID is the identity of a session
 type SessionID uint64
 
-//go:nocheckptr
 func (s *shard) Load(id SessionID) (Session, bool) {
 	s.lock.RLock()
+
+	// p := atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&s.m)))
+	// m := *(*map[SessionID]Session)(unsafe.Pointer(p))
+
 	session, ok := s.m[id]
 	s.lock.RUnlock()
 	return session, ok
@@ -157,15 +160,13 @@ func (self *SessionManager) UnbindSession(id SessionID) {
 }
 
 // GC sweep invalid sessions and release unused memory
-//
-//go:nocheckptr
 func (self SessionManager) GC() {
 	if !atomic.CompareAndSwapUint32(&self.inGC, 0, 1) {
 		return
 	}
 
 	for _, shard := range self.shards {
-		shard.lock.RLock()
+		shard.lock.Lock()
 		n := shard.m
 		m := make(map[SessionID]Session, len(n))
 		for id, s := range n {
@@ -174,8 +175,9 @@ func (self SessionManager) GC() {
 				m[id] = s
 			}
 		}
+		// atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&shard.m)), unsafe.Pointer(&m))
 		shard.m = m
-		shard.lock.RUnlock()
+		shard.lock.Unlock()
 	}
 
 	atomic.StoreUint32(&self.inGC, 0)
