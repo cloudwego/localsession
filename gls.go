@@ -47,6 +47,11 @@ func DefaultManagerOptions() ManagerOptions {
 	}
 }
 
+// GetDefaultManager returns the default manager
+func GetDefaultManager() *SessionManager {
+	return defaultManagerObj
+}
+
 // InitDefaultManager update and restart default manager.
 // It accept argument opts and env config both.
 //
