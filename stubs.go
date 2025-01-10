@@ -17,12 +17,16 @@ import (
 	"strconv"
 	_ "unsafe"
 
-	"github.com/modern-go/gls"
+	"github.com/cloudwego/runtimex"
 )
 
 //go:nocheckptr
 func goID() uint64 {
-	return uint64(gls.GoID())
+	gid, err := runtimex.GID()
+	if err != nil {
+		panic(err)
+	}
+	return uint64(gid)
 }
 
 type labelMap map[string]string
@@ -49,7 +53,7 @@ func transmitSessionID(id SessionID) {
 			}
 		}
 	}
-	
+
 	n[Pprof_Label_Session_ID] = strconv.FormatInt(int64(id), 10)
 	setPprofLabel(&n)
 }
@@ -73,7 +77,7 @@ func getSessionID() (SessionID, bool) {
 func clearSessionID() {
 	m := getPproLabel()
 	if m == nil {
-		return 
+		return
 	}
 	if _, ok := (*m)[Pprof_Label_Session_ID]; !ok {
 		return
