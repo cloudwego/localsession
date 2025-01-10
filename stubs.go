@@ -17,12 +17,16 @@ import (
 	"strconv"
 	_ "unsafe"
 
-	"github.com/cloudwego/localsession/internal/goid"
+	"github.com/cloudwego/runtimex"
 )
 
 //go:nocheckptr
 func goID() uint64 {
-	return uint64(goid.GoID())
+	gid, err := runtimex.GID()
+	if err != nil {
+		panic(err)
+	}
+	return uint64(gid)
 }
 
 type labelMap map[string]string
