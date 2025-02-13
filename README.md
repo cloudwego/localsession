@@ -12,7 +12,7 @@ Session is an interface to carry and transmit your context. It has `Get()` and `
 Both implementations are **Concurrent Safe**.
 
 ### SessionManager
-SessionManager is a global manager of sessions. Through `BindSession()` and `CurSession()` methods it provides, you can transmit your session within the thread implicitly, without using explicit codes like `CallXXX(context.Context, args....)`.
+SessionManager is a global manager of sessions. Through `BindSession()` and `CurSession()` methods it provides, you can transmit your session within the thread implicitly, without using explicit codes like `CallXXX(context.Context, args...)`.
 ```go
 import (
 	"context"
