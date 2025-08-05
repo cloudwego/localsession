@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestResetDefaultManager(t *testing.T) {
-	old := defaultManagerObj
+	final := safeTestInitManager(DefaultManagerOptions())
 
 	t.Run("arg", func(t *testing.T) {
 		defaultManagerOnce = sync.Once{}
@@ -90,8 +90,7 @@ func TestResetDefaultManager(t *testing.T) {
 		require.Equal(t, exp, act)
 	})
 
-	defaultManagerObj = old
-	defaultManagerOnce = sync.Once{}
+	final()
 }
 
 func TestSessionTimeout(t *testing.T) {
@@ -616,6 +615,39 @@ func (st *stat) String() string {
 	st.mux.RLock()
 	defer st.mux.RUnlock()
 	return fmt.Sprintf("min:%dns, max:%dns, avg:%dns", st.min, st.max, st.sum/time.Duration(st.count))
+}
+
+func TestInitManager(t *testing.T) {
+	wg := sync.WaitGroup{}
+	wg.Add(4)
+	go func() {
+		defer wg.Done()
+		s, _ := CurSession()
+		_ = s
+	}()
+	go func() {
+		defer wg.Done()
+		safeTestInitManager(DefaultManagerOptions())()
+	}()
+	go func() {
+		defer wg.Done()
+		BindSession(NewSessionCtx(context.Background()))
+	}()
+	go func() {
+		defer wg.Done()
+		UnbindSession()
+	}()
+	wg.Wait()
+}
+
+func safeTestInitManager(opts ManagerOptions) func() {
+	defaultManagerOnce = sync.Once{}
+	old := getDefaultManagerObj()
+	InitDefaultManager(opts)
+	return func() {
+		setDefaultManagerObj(old)
+		defaultManagerOnce = sync.Once{}
+	}
 }
 
 func TestRealBizGLS(t *testing.T) {
