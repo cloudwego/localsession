@@ -344,7 +344,7 @@ func TestSessionManager_GC(t *testing.T) {
 	require.Equal(t, N/2, sum)
 }
 
-func TestRace(t *testing.T) {
+func TestGCRace(t *testing.T) {
 	manager := NewSessionManager(ManagerOptions{
 		ShardNumber: 1,
 		GCInterval:  time.Second,
@@ -555,8 +555,10 @@ func emitLoops(m *SessionManager, ctx context.Context, N int, s *stat) {
 	for i := 0; i < N; i++ {
 		go func() {
 			for {
-				if ctx.Err() != nil {
+				select {
+				case <-ctx.Done():
 					return
+				default:
 				}
 				start := time.Now()
 				session := NewSessionCtx(ctx)
@@ -570,8 +572,8 @@ func emitLoops(m *SessionManager, ctx context.Context, N int, s *stat) {
 				cost := time.Now().Sub(start)
 				s.Update(cost)
 				for a := 0; a < 10; a++ {
-					time.Sleep(time.Microsecond * 50)
-					for b := 0; b < 100000; b++ {
+					time.Sleep(time.Microsecond * 1)
+					for b := 0; b < 10000; b++ {
 						_ = b
 					}
 				}
@@ -628,7 +630,7 @@ func TestRealBizGLS(t *testing.T) {
 		ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
 		emitLoops(&m, ctx, N, s)
 		go func(ctx context.Context) {
-			tt := time.NewTicker(time.Second)
+			tt := time.NewTicker(time.Millisecond * 10)
 			for {
 				select {
 				case <-tt.C:
