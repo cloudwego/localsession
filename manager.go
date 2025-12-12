@@ -22,6 +22,8 @@ import (
 
 // ManagerOptions for SessionManager
 type ManagerOptions struct {
+	// Deprecated: use `Go()` or `GoSession()` to explicitly transmit session instead.
+	//
 	// EnableImplicitlyTransmitAsync enables transparently transmit
 	// current session to children goroutines
 	//
@@ -118,16 +120,7 @@ func (self *SessionManager) GetSession(id SessionID) (Session, bool) {
 	if ok {
 		return session, ok
 	}
-	if !self.opts.EnableImplicitlyTransmitAsync {
-		return nil, false
-	}
-
-	id, ok = getSessionID()
-	if !ok {
-		return nil, false
-	}
-	shard = self.shards[uint64(id)%uint64(self.opts.ShardNumber)]
-	return shard.Load(id)
+	return nil, false
 }
 
 // BindSession binds the session with current goroutine
@@ -135,10 +128,6 @@ func (self *SessionManager) BindSession(id SessionID, s Session) {
 	shard := self.shards[uint64(id)%uint64(self.opts.ShardNumber)]
 
 	shard.Store(id, s)
-
-	if self.opts.EnableImplicitlyTransmitAsync {
-		transmitSessionID(id)
-	}
 }
 
 // UnbindSession clears current session
@@ -152,10 +141,6 @@ func (self *SessionManager) UnbindSession(id SessionID) {
 	_, ok := shard.Load(id)
 	if ok {
 		shard.Delete(id)
-	}
-
-	if self.opts.EnableImplicitlyTransmitAsync {
-		clearSessionID()
 	}
 }
 

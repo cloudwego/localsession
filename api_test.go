@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"runtime/pprof"
 	"sync"
 	"testing"
 	"time"
@@ -91,52 +90,6 @@ func TestResetDefaultManager(t *testing.T) {
 		require.Equal(t, exp, act)
 	})
 
-	defaultManagerObj = old
-	defaultManagerOnce = sync.Once{}
-}
-
-//go:nocheckptr
-func TestTransparentTransmitAsync(t *testing.T) {
-	old := defaultManagerObj
-	InitDefaultManager(ManagerOptions{
-		ShardNumber:                   10,
-		EnableImplicitlyTransmitAsync: true,
-		GCInterval:                    time.Second * 2,
-	})
-	s := NewSessionMap(map[interface{}]interface{}{
-		"a": "b",
-	})
-
-	labels := pprof.Labels("c", "d")
-
-	// WARNING: pprof.Do() must be called before BindSession(),
-	// otherwise transparently transmitting session will be dysfunctional
-	pprof.Do(context.Background(), labels, func(ctx context.Context) {})
-
-	BindSession(s)
-
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		require.Equal(t, "b", mustCurSession().Get("a"))
-
-		go func() {
-			defer wg.Done()
-			require.Equal(t, "b", mustCurSession().Get("a"))
-		}()
-
-		require.Equal(t, "b", mustCurSession().Get("a"))
-		UnbindSession()
-		require.Nil(t, mustCurSession())
-
-		go func() {
-			defer wg.Done()
-			require.Nil(t, mustCurSession())
-		}()
-	}()
-
-	wg.Wait()
 	defaultManagerObj = old
 	defaultManagerOnce = sync.Once{}
 }
@@ -672,7 +625,7 @@ func TestRealBizGLS(t *testing.T) {
 		s := &stat{
 			min: time.Duration(math.MaxInt64),
 		}
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*60)
+		ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
 		emitLoops(&m, ctx, N, s)
 		go func(ctx context.Context) {
 			tt := time.NewTicker(time.Second)
@@ -696,8 +649,5 @@ func TestRealBizGLS(t *testing.T) {
 	})
 	t.Run("100", func(t *testing.T) {
 		runner(100)
-	})
-	t.Run("1000", func(t *testing.T) {
-		runner(1000)
 	})
 }

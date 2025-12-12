@@ -79,24 +79,24 @@ func TestRecoverCtxOndemands(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := RecoverCtxOnDemands(tt.args.ctx, tt.args.handler); got != nil {
-				if v := got.Value(CtxKeyTest1); v == nil {
-					t.Errorf("not got CtxKeyTest1")
-				}
-				a, _ := metainfo.GetPersistentValue(got, "a")
-				ae, _ := metainfo.GetPersistentValue(tt.want, "a")
-				if a != ae {
-					t.Errorf("CurSession() = %v, want %v", a, ae)
-				}
-				b, _ := metainfo.GetPersistentValue(got, "b")
-				be, _ := metainfo.GetPersistentValue(tt.want, "b")
-				if b != be {
-					t.Errorf("CurSession() = %v, want %v", b, be)
-				}
-			} else {
-				t.Fatal("no got")
+		// t.Run(tt.name, func(t *testing.T) {
+		if got := RecoverCtxOnDemands(tt.args.ctx, tt.args.handler); got != nil {
+			if v := got.Value(CtxKeyTest1); v == nil {
+				t.Errorf("not got CtxKeyTest1")
 			}
-		})
+			a, _ := metainfo.GetPersistentValue(got, "a")
+			ae, _ := metainfo.GetPersistentValue(tt.want, "a")
+			if a != ae {
+				t.Errorf("CurSession() = %v, want %v", a, ae)
+			}
+			b, _ := metainfo.GetPersistentValue(got, "b")
+			be, _ := metainfo.GetPersistentValue(tt.want, "b")
+			if b != be {
+				t.Errorf("CurSession() = %v, want %v", b, be)
+			}
+		} else {
+			t.Fatal("no got")
+		}
+		// })
 	}
 }

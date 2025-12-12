@@ -16,9 +16,6 @@ package localsession
 
 import (
 	"context"
-	"runtime/pprof"
-	"sync"
-	"time"
 )
 
 func ASSERT(v bool) {
@@ -33,53 +30,6 @@ func GetCurSession() Session {
 		panic("can't get current session!")
 	}
 	return s
-}
-
-func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
-	// EnableImplicitlyTransmitAsync must be true
-	InitDefaultManager(ManagerOptions{
-		ShardNumber:                   10,
-		EnableImplicitlyTransmitAsync: true,
-		GCInterval:                    time.Hour,
-	})
-
-	// WARNING: pprof.Do() must be called before BindSession(),
-	// otherwise transparently transmitting session will be dysfunctional
-	labels := pprof.Labels("c", "d")
-	pprof.Do(context.Background(), labels, func(ctx context.Context) {})
-
-	s := NewSessionMap(map[interface{}]interface{}{
-		"a": "b",
-	})
-	BindSession(s)
-
-	// WARNING: pprof.Do() must be called before BindSession(),
-	// otherwise transparently transmitting session will be dysfunctional
-	// labels := pprof.Labels("c", "d")
-	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
-
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		ASSERT("b" == mustCurSession().Get("a"))
-
-		go func() {
-			defer wg.Done()
-			ASSERT("b" == mustCurSession().Get("a"))
-		}()
-
-		ASSERT("b" == mustCurSession().Get("a"))
-		UnbindSession()
-		ASSERT(nil == mustCurSession())
-
-		go func() {
-			defer wg.Done()
-			ASSERT(nil == mustCurSession())
-		}()
-
-	}()
-	wg.Wait()
 }
 
 func ExampleSessionCtx() {
