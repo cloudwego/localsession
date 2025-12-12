@@ -35,7 +35,7 @@ func GetCurSession() Session {
 	return s
 }
 
-func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
+func ExampleManagerOptions_EnableImplicitlyTransmitAsync() {
 	// EnableImplicitlyTransmitAsync must be true
 	InitDefaultManager(ManagerOptions{
 		ShardNumber:                   10,
@@ -43,20 +43,12 @@ func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
 		GCInterval:                    time.Hour,
 	})
 
-	// WARNING: pprof.Do() must be called before BindSession(),
-	// otherwise transparently transmitting session will be dysfunctional
+	ctx := context.WithValue(context.Background(), "a", "b")
+	ctx = BindContext(ctx)
+
+	// WARNING: any pprof label must use the ctx (or its children) returned by BindContext
 	labels := pprof.Labels("c", "d")
-	pprof.Do(context.Background(), labels, func(ctx context.Context) {})
-
-	s := NewSessionMap(map[interface{}]interface{}{
-		"a": "b",
-	})
-	BindSession(s)
-
-	// WARNING: pprof.Do() must be called before BindSession(),
-	// otherwise transparently transmitting session will be dysfunctional
-	// labels := pprof.Labels("c", "d")
-	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
+	pprof.Do(ctx, labels, func(ctx context.Context) {})
 
 	wg := sync.WaitGroup{}
 	wg.Add(3)

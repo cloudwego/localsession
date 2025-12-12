@@ -15,6 +15,7 @@
 package localsession
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -99,8 +100,6 @@ func checkEnvOptions(opts *ManagerOptions) {
 }
 
 // CurSession gets the session for current goroutine
-//
-// NOTICE: MUST call `InitDefaultManager()` once before using this API
 func CurSession() (Session, bool) {
 	if defaultManagerObj == nil {
 		return nil, false
@@ -109,9 +108,24 @@ func CurSession() (Session, bool) {
 	return s, ok
 }
 
+// CurContext gets the context for current goroutine
+func CurContext() context.Context {
+	if defaultManagerObj == nil {
+		return nil
+	}
+	s, ok := defaultManagerObj.GetSession(SessionID(goID()))
+	if !ok {
+		return nil
+	}
+	if sc, ok := s.(SessionCtx); ok {
+		return sc.Export()
+	}
+	return nil
+}
+
 // BindSession binds the session with current goroutine
 //
-// NOTICE: MUST call `InitDefaultManager()` once before using this API
+// NOTICE: option EnableImplicitlyTransmitAsync doesn't work for this API
 func BindSession(s Session) {
 	if defaultManagerObj == nil {
 		return
@@ -119,13 +133,22 @@ func BindSession(s Session) {
 	defaultManagerObj.BindSession(SessionID(goID()), s)
 }
 
+// BindContext binds the context with current goroutine.
+//
+// If option EnableImplicitlyTransmitAsync is true, its children goroutines will inherit this context,
+// NOTICE: any runtime/pprof labels API should use the returned context (or its children)
+func BindContext(ctx context.Context) context.Context {
+	if defaultManagerObj == nil {
+		return nil
+	}
+	return defaultManagerObj.BindContext(SessionID(goID()), ctx)
+}
+
 // UnbindSession unbind a session (if any) with current goroutine
 //
 // NOTICE: If you want to end the session,
 // please call `Disable()` (or whatever make the session invalid)
 // on your session's implementation
-//
-// NOTICE: MUST call `InitDefaultManager()` once before using this API
 func UnbindSession() {
 	if defaultManagerObj == nil {
 		return

@@ -200,23 +200,20 @@ func main() {
 ### Implicitly Transmit Async Context 
 You can also set option `EnableImplicitlyTransmitAsync` as true to transparently transmit context. Once the option is enabled, every goroutine will inherit their parent's session.
 ```go
-func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
-	// EnableImplicitlyTransmitAsync must be true 
-	ResetDefaultManager(ManagerOptions{
-		ShardNumber: 10,
+func ExampleManagerOptions_EnableImplicitlyTransmitAsync() {
+	// EnableImplicitlyTransmitAsync must be true
+	InitDefaultManager(ManagerOptions{
+		ShardNumber:                   10,
 		EnableImplicitlyTransmitAsync: true,
-		GCInterval: time.Hour,
+		GCInterval:                    time.Hour,
 	})
 
-	// WARNING: if you want to use `pprof.Do()`, it must be called before `BindSession()`, 
-	// otherwise transparently transmitting session will be dysfunctional
-	// labels := pprof.Labels("c", "d")
-	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
-	
-	s := NewSessionMap(map[interface{}]interface{}{
-		"a": "b",
-	})
-	BindSession(s)
+	ctx := context.WithValue(context.Background(), "a", "b")
+	ctx = BindContext(ctx)
+
+	// WARNING: any pprof label must use the ctx (or its children) returned by BindContext
+	labels := pprof.Labels("c", "d")
+	pprof.Do(ctx, labels, func(ctx context.Context) {})
 
 	wg := sync.WaitGroup{}
 	wg.Add(3)

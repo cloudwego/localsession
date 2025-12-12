@@ -16,9 +16,13 @@ package localsession
 
 import (
 	"context"
+	"runtime/pprof"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/cloudwego/runtimex"
 )
 
 // Session represents a local storage for one session
@@ -169,4 +173,21 @@ func (self *SessionMap) WithValue(key, val interface{}) Session {
 	self.storage[key] = val
 	self.lock.Unlock()
 	return self
+}
+
+const Pprof_Label_Session_ID = "go_session_id"
+
+func setSessionID(id SessionID, ctx context.Context) context.Context {
+	ctx = pprof.WithLabels(ctx, pprof.Labels(Pprof_Label_Session_ID, strconv.FormatInt(int64(id), 10)))
+	pprof.SetGoroutineLabels(ctx)
+	return ctx
+}
+
+//go:nocheckptr
+func goID() uint64 {
+	gid, err := runtimex.GID()
+	if err != nil {
+		panic(err)
+	}
+	return uint64(gid)
 }

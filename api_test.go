@@ -96,39 +96,39 @@ func TestResetDefaultManager(t *testing.T) {
 }
 
 //go:nocheckptr
-func TestTransparentTransmitAsync(t *testing.T) {
+func TestExplictTransmitAsync(t *testing.T) {
 	old := defaultManagerObj
+	defaultManagerOnce = sync.Once{}
 	InitDefaultManager(ManagerOptions{
 		ShardNumber:                   10,
 		EnableImplicitlyTransmitAsync: true,
 		GCInterval:                    time.Second * 2,
 	})
-	s := NewSessionMap(map[interface{}]interface{}{
-		"a": "b",
-	})
 
-	labels := pprof.Labels("c", "d")
+	ctx := pprof.WithLabels(context.Background(), pprof.Labels("c", "d"))
+	pprof.SetGoroutineLabels(ctx)
 
-	// WARNING: pprof.Do() must be called before BindSession(),
-	// otherwise transparently transmitting session will be dysfunctional
-	pprof.Do(context.Background(), labels, func(ctx context.Context) {})
+	ctx = context.WithValue(ctx, "a", "b")
+	ctx = BindContext(ctx)
 
-	BindSession(s)
+	// WARNING: any pprof label must use the ctx (or its children) returned by BindContext
+	ctx = pprof.WithLabels(ctx, pprof.Labels("e", "f"))
+	pprof.SetGoroutineLabels(ctx)
 
 	wg := sync.WaitGroup{}
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		require.Equal(t, "b", mustCurSession().Get("a"))
+		require.Equal(t, "b", CurContext().Value("a"))
 
 		go func() {
 			defer wg.Done()
-			require.Equal(t, "b", mustCurSession().Get("a"))
+			require.Equal(t, "b", CurContext().Value("a"))
 		}()
 
 		require.Equal(t, "b", mustCurSession().Get("a"))
 		UnbindSession()
-		require.Nil(t, mustCurSession())
+		require.Nil(t, CurContext())
 
 		go func() {
 			defer wg.Done()
@@ -417,6 +417,52 @@ func TestRace(t *testing.T) {
 	wg.Wait()
 }
 
+func BenchmarkSesionRoundTrip(b *testing.B) {
+	b.Run("sync", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			BindSession(NewSessionCtx(context.Background()))
+			_, ok := CurSession()
+			if !ok {
+				b.Fatal("session not found")
+			}
+			UnbindSession()
+		}
+	})
+
+	b.Run("async", func(b *testing.B) {
+		old := defaultManagerObj
+		defaultManagerOnce = sync.Once{}
+		InitDefaultManager(ManagerOptions{
+			EnableImplicitlyTransmitAsync: true,
+			ShardNumber:                   1,
+			GCInterval:                    time.Second,
+		})
+		for i := 0; i < b.N; i++ {
+			_ = BindContext(context.Background())
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, ok := CurSession()
+				if !ok {
+					b.Fatal("session not found")
+				}
+				UnbindSession()
+			}()
+			wg.Wait()
+			UnbindSession()
+		}
+		defaultManagerObj = old
+		defaultManagerOnce = sync.Once{}
+	})
+}
+
+func BenchmarkSession(b *testing.B) {
+	b.Run("sync", func(b *testing.B) {
+
+	})
+}
+
 func BenchmarkSessionManager_CurSession(b *testing.B) {
 	s := NewSessionCtx(context.Background())
 
@@ -672,8 +718,10 @@ func TestRealBizGLS(t *testing.T) {
 		s := &stat{
 			min: time.Duration(math.MaxInt64),
 		}
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*60)
+		ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+
 		emitLoops(&m, ctx, N, s)
+
 		go func(ctx context.Context) {
 			tt := time.NewTicker(time.Second)
 			for {
@@ -692,12 +740,9 @@ func TestRealBizGLS(t *testing.T) {
 	}
 
 	t.Run("10", func(t *testing.T) {
-		runner(10)
+		runner(100)
 	})
 	t.Run("100", func(t *testing.T) {
 		runner(100)
-	})
-	t.Run("1000", func(t *testing.T) {
-		runner(1000)
 	})
 }

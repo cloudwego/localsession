@@ -101,11 +101,11 @@ func RecoverCtxOnDemands(ctx context.Context, handler BackupHandler) context.Con
 }
 
 // Set current Sessioin
-func BackupCtx(ctx context.Context) {
+func BackupCtx(ctx context.Context) context.Context {
 	if localsession.GetDefaultManager() == nil {
-		return
+		return ctx
 	}
-	localsession.BindSession(localsession.NewSessionCtx(ctx))
+	return localsession.BindContext(ctx)
 }
 
 // Unset current Session

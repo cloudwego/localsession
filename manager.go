@@ -15,6 +15,7 @@
 package localsession
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -131,14 +132,23 @@ func (self *SessionManager) GetSession(id SessionID) (Session, bool) {
 }
 
 // BindSession binds the session with current goroutine
+//
+// NOTICE: option EnableImplicitlyTransmitAsync doesn't work for this API
 func (self *SessionManager) BindSession(id SessionID, s Session) {
 	shard := self.shards[uint64(id)%uint64(self.opts.ShardNumber)]
-
 	shard.Store(id, s)
+}
 
+// BindContext binds the context with current goroutine and its children goroutines if option EnableImplicitlyTransmitAsync is true
+func (self *SessionManager) BindContext(id SessionID, ctx context.Context) context.Context {
 	if self.opts.EnableImplicitlyTransmitAsync {
-		transmitSessionID(id)
+		ctx = setSessionID(id, ctx)
 	}
+
+	shard := self.shards[uint64(id)%uint64(self.opts.ShardNumber)]
+	s := NewSessionCtx(ctx)
+	shard.Store(id, s)
+	return ctx
 }
 
 // UnbindSession clears current session
