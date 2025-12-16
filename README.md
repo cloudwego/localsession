@@ -197,51 +197,6 @@ func main() {
 }
 ```
 
-### Implicitly Transmit Async Context 
-You can also set option `EnableImplicitlyTransmitAsync` as true to transparently transmit context. Once the option is enabled, every goroutine will inherit their parent's session.
-```go
-func ExampleSessionCtx_EnableImplicitlyTransmitAsync() {
-	// EnableImplicitlyTransmitAsync must be true 
-	ResetDefaultManager(ManagerOptions{
-		ShardNumber: 10,
-		EnableImplicitlyTransmitAsync: true,
-		GCInterval: time.Hour,
-	})
-
-	// WARNING: if you want to use `pprof.Do()`, it must be called before `BindSession()`, 
-	// otherwise transparently transmitting session will be dysfunctional
-	// labels := pprof.Labels("c", "d")
-	// pprof.Do(context.Background(), labels, func(ctx context.Context){})
-	
-	s := NewSessionMap(map[interface{}]interface{}{
-		"a": "b",
-	})
-	BindSession(s)
-
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-	go func() {
-		defer wg.Done()
-		ASSERT("b" == mustCurSession().Get("a"))
-
-		go func() {
-			defer wg.Done()
-			ASSERT("b" == mustCurSession().Get("a"))
-		}()
-
-		ASSERT("b" == mustCurSession().Get("a"))
-		UnbindSession()
-		ASSERT(nil == mustCurSession())
-
-		go func() {
-			defer wg.Done()
-			ASSERT(nil == mustCurSession())
-		}()
-
-	}()
-	wg.Wait()
-}
-```
 
 ## Community
 - Email: [conduct@cloudwego.io](conduct@cloudwego.io)
