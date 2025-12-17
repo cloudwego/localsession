@@ -63,8 +63,16 @@ func GetDefaultManager() *SessionManager {
 //go:nocheckptr
 func InitDefaultManager(opts ManagerOptions) {
 	defaultManagerOnce.Do(func() {
+		if opts.EnableImplicitlyTransmitAsync {
+			panic("option EnableImplicitlyTransmitAsync is not supported anymore!")
+		}
+
 		// env config has high priority
 		checkEnvOptions(&opts)
+
+		if opts.EnableImplicitlyTransmitAsync {
+			panic("option EnableImplicitlyTransmitAsync is not supported anymore!")
+		}
 
 		if defaultManagerObj != nil {
 			defaultManagerObj.Close()
