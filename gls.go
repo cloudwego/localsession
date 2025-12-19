@@ -59,8 +59,6 @@ func GetDefaultManager() *SessionManager {
 //   - It use env SESSION_CONFIG_KEY prior to argument opts;
 //   - If both env and opts are empty, it won't reset manager;
 //   - For concurrent safety, you can only successfully reset manager ONCE.
-//
-//go:nocheckptr
 func InitDefaultManager(opts ManagerOptions) {
 	defaultManagerOnce.Do(func() {
 		// env config has high priority
@@ -70,7 +68,7 @@ func InitDefaultManager(opts ManagerOptions) {
 			defaultManagerObj.Close()
 		}
 		obj := NewSessionManager(opts)
-		defaultManagerObj = &obj
+		setDefaultManagerObj(&obj)
 	})
 }
 
@@ -102,10 +100,11 @@ func checkEnvOptions(opts *ManagerOptions) {
 //
 // NOTICE: MUST call `InitDefaultManager()` once before using this API
 func CurSession() (Session, bool) {
-	if defaultManagerObj == nil {
+	m := getDefaultManagerObj()
+	if m == nil {
 		return nil, false
 	}
-	s, ok := defaultManagerObj.GetSession(SessionID(goID()))
+	s, ok := m.GetSession(SessionID(goID()))
 	return s, ok
 }
 
@@ -113,10 +112,11 @@ func CurSession() (Session, bool) {
 //
 // NOTICE: MUST call `InitDefaultManager()` once before using this API
 func BindSession(s Session) {
-	if defaultManagerObj == nil {
+	m := getDefaultManagerObj()
+	if m == nil {
 		return
 	}
-	defaultManagerObj.BindSession(SessionID(goID()), s)
+	m.BindSession(SessionID(goID()), s)
 }
 
 // UnbindSession unbind a session (if any) with current goroutine
@@ -127,10 +127,11 @@ func BindSession(s Session) {
 //
 // NOTICE: MUST call `InitDefaultManager()` once before using this API
 func UnbindSession() {
-	if defaultManagerObj == nil {
+	m := getDefaultManagerObj()
+	if m == nil {
 		return
 	}
-	defaultManagerObj.UnbindSession(SessionID(goID()))
+	m.UnbindSession(SessionID(goID()))
 }
 
 // Go calls f asynchronously and pass caller's session to the new goroutine
