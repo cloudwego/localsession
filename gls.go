@@ -61,8 +61,16 @@ func GetDefaultManager() *SessionManager {
 //   - For concurrent safety, you can only successfully reset manager ONCE.
 func InitDefaultManager(opts ManagerOptions) {
 	defaultManagerOnce.Do(func() {
+		if opts.EnableImplicitlyTransmitAsync {
+			panic("option EnableImplicitlyTransmitAsync is not supported anymore!")
+		}
+
 		// env config has high priority
 		checkEnvOptions(&opts)
+
+		if opts.EnableImplicitlyTransmitAsync {
+			panic("option EnableImplicitlyTransmitAsync is not supported anymore!")
+		}
 
 		if defaultManagerObj != nil {
 			defaultManagerObj.Close()
