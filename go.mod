@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/bytedance/gopkg v0.0.0-20230728082804-614d0af6619b
-	github.com/cloudwego/runtimex v0.1.1
+	github.com/cloudwego/runtimex v0.1.2
 	github.com/stretchr/testify v1.7.0
 )
 
